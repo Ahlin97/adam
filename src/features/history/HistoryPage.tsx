@@ -184,7 +184,7 @@ function CalendarView({
                   k === todayKey && !isSel && 'ring-1 ring-accent',
                 )}
               >
-                <span className={cx('tabular', count && 'font-bold')}>{d.getDate()}</span>
+                <span className={cx('tabular', count > 0 && 'font-bold')}>{d.getDate()}</span>
                 <span className="flex h-2 gap-0.5" aria-hidden>
                   {Array.from({ length: Math.min(count, 3) }).map((_, j) => (
                     <span key={j} className={cx('h-1.5 w-1.5 rounded-full', isSel ? 'bg-accent-fg' : 'bg-good')} />

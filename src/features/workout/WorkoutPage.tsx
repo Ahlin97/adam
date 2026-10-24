@@ -578,7 +578,7 @@ function CurrentSetCard({
   const step = exercise ? stepFor(exercise, settings) : 2.5;
   const suggestion = se.suggestion;
   const showReason = suggestion?.reason && next.type === 'working' && suggestion.kind !== 'first_time';
-  const showWeight = !time || weight > 0;
+  const showWeight = !time;
 
   return (
     <section aria-label="Nästa set" className="rounded-2xl border border-border bg-surface p-3">
@@ -616,11 +616,6 @@ function CurrentSetCard({
             <div className="mb-1 text-xs text-muted">RPE (valfritt)</div>
             <RpePicker value={rpe} onChange={setRpe} />
           </div>
-          {time && weight === 0 && (
-            <Button size="sm" onClick={() => setWeight(step)}>
-              + Lägg till vikt
-            </Button>
-          )}
         </div>
       )}
 
@@ -640,7 +635,7 @@ function CurrentSetCard({
         variant="good"
         size="xl"
         className="mt-3 min-h-20 w-full text-3xl"
-        disabled={saving || (!time && reps <= 0)}
+        disabled={saving || reps <= 0}
         aria-label={`Klar: ${time ? `${reps} sekunder` : `${reps} reps`}${showWeight ? `, ${weightText(weight, exercise, settings.unit)}` : ''}`}
         onClick={async () => {
           unlockAudio();
@@ -649,7 +644,7 @@ function CurrentSetCard({
             await onConfirm(current, {
               type,
               reps: time ? 0 : reps,
-              weight,
+              weight: time ? 0 : weight,
               durationSec: time ? reps : null,
               rpe,
             });

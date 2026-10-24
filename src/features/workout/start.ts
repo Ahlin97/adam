@@ -67,7 +67,8 @@ export async function startSession(opts: { templateId: string | null; programId:
 async function mutateSession(sessionId: string, fn: (s: WorkoutSession) => WorkoutSession | void): Promise<WorkoutSession | undefined> {
   const s = await get('sessions', sessionId);
   if (!s) return undefined;
-  const next = fn(structuredClone(s)) ?? s;
+  const draft = structuredClone(s);
+  const next = fn(draft) ?? draft;
   await put('sessions', next);
   return next;
 }

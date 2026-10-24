@@ -8,15 +8,15 @@ export function RestTimerPanel({ state, remainingMs }: { state: RestState; remai
   const pct = Math.min(100, Math.max(0, (remainingMs / 1000 / Math.max(1, state.totalSec)) * 100));
   return (
     <section aria-label="Vilotimer" className="rounded-2xl border border-accent/50 bg-surface p-3">
-      <div className="flex items-center gap-3">
-        <div className="min-w-0 flex-1">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="min-w-[8rem] flex-1">
           <div className="text-xs font-semibold uppercase tracking-wide text-muted">Vila</div>
           <div className="tabular text-5xl font-black leading-none" role="timer" aria-live="off">
             {formatDuration(sec)}
           </div>
-          {state.nextLabel && <div className="mt-1 truncate text-sm text-muted">Nästa: {state.nextLabel}</div>}
+          {state.nextLabel && <div className="mt-1 text-sm text-muted">Nästa: {state.nextLabel}</div>}
         </div>
-        <div className="flex shrink-0 gap-1">
+        <div className="flex shrink-0 gap-1 max-[420px]:w-full max-[420px]:[&>*]:flex-1">
           <Button size="lg" className="min-w-14 px-2" aria-label="Korta vilan 15 sekunder" onClick={() => void adjustRest(-15)}>
             −15
           </Button>

@@ -4,7 +4,7 @@ import type { Exercise, SetType, Settings } from '@/engine';
 import { Button, Sheet } from '@/ui';
 import { NumberStepper, RpePicker, SetTypePicker, WeightStepper } from './inputs';
 import { stepFor } from './safeEngine';
-import { isBodyweight, isTime, weightLabel } from './setFormat';
+import { isTime, weightLabel } from './setFormat';
 
 export interface SetValues {
   type: SetType;
@@ -59,7 +59,7 @@ function Body({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const time = isTime(exercise);
   const step = exercise ? stepFor(exercise, settings) : 2.5;
-  const showWeight = !time || (exercise && isBodyweight(exercise));
+  const showWeight = !time;
   return (
     <div className="space-y-5">
       <SetTypePicker value={v.type} onChange={(type) => setV({ ...v, type })} />
@@ -93,7 +93,7 @@ function Body({
         size="lg"
         className="w-full"
         onClick={async () => {
-          await onSave(v);
+          await onSave(time ? { ...v, reps: 0, weight: 0 } : v);
           onClose();
         }}
       >
