@@ -1,0 +1,14 @@
+# Minimal Supabase CLI configuration for Gymlogg.
+# Only settings that differ from the CLI defaults are listed.
+project_id = "gymlogg"
+
+[api]
+schemas = ["public"]
+
+[auth]
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173"]
+
+# Apple Watch / Shortcuts API. Authenticated with a personal API key (x-api-key), not a Supabase JWT.
+[functions.watch]
+verify_jwt = false
