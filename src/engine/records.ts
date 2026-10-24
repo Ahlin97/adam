@@ -1,0 +1,72 @@
+// Estimated 1RM and personal records.
+import type { SetEntry } from './types.ts';
+
+/** Epley: weight × (1 + reps / 30). reps <= 1 returns weight. */
+export function epley1RM(weight: number, reps: number): number {
+  if (reps <= 1) return weight;
+  return weight * (1 + reps / 30);
+}
+
+export interface PersonalRecords {
+  heaviestWeight: number | null;
+  best1RM: number | null;
+  /** weight (kg) -> max reps on that weight */
+  mostRepsAtWeight: Record<string, number>;
+}
+
+type RecordSet = Pick<SetEntry, 'type' | 'reps' | 'weight'>;
+
+/** Key used in mostRepsAtWeight: the kg value as a plain JS number string ("82.5"). */
+export const weightKey = (kg: number): string => String(Math.round(kg * 1000) / 1000);
+
+const counts = (s: RecordSet): boolean => s.type !== 'warmup' && s.reps > 0;
+
+/** Personal records over non-warmup sets with at least one rep. Zero/negative weights don't count as heaviest/1RM. */
+export function personalRecords(sets: RecordSet[]): PersonalRecords {
+  let heaviest: number | null = null;
+  let best: number | null = null;
+  const mostReps: Record<string, number> = {};
+  for (const s of sets) {
+    if (!counts(s)) continue;
+    if (s.weight > 0) {
+      if (heaviest === null || s.weight > heaviest) heaviest = s.weight;
+      const e = epley1RM(s.weight, s.reps);
+      if (best === null || e > best) best = e;
+    }
+    const k = weightKey(s.weight);
+    if (!(k in mostReps) || s.reps > mostReps[k]) mostReps[k] = s.reps;
+  }
+  return { heaviestWeight: heaviest, best1RM: best, mostRepsAtWeight: mostReps };
+}
+
+/**
+ * Which PR categories `current` beats vs. `prior`. Nothing counts as a record when there is no
+ * prior data (first session is not a PR). A reps record at weight w means more reps at w than
+ * ever done before at w or any heavier weight (and some heavier/equal weight must exist before –
+ * otherwise it's covered by `heaviest`). `repsAtWeight` lists such weights ascending.
+ */
+export function newRecords(
+  prior: RecordSet[],
+  current: RecordSet[],
+): { heaviest: boolean; best1RM: boolean; repsAtWeight: number[] } {
+  const p = prior.filter(counts);
+  const result = { heaviest: false, best1RM: false, repsAtWeight: [] as number[] };
+  if (p.length === 0) return result;
+  const pr = personalRecords(p);
+  const cr = personalRecords(current);
+  const eps = 1e-9;
+  if (cr.heaviestWeight !== null && (pr.heaviestWeight === null || cr.heaviestWeight > pr.heaviestWeight + eps)) {
+    result.heaviest = true;
+  }
+  if (cr.best1RM !== null && (pr.best1RM === null || cr.best1RM > pr.best1RM + eps)) {
+    result.best1RM = true;
+  }
+  for (const [k, reps] of Object.entries(cr.mostRepsAtWeight)) {
+    const w = Number(k);
+    let priorBest = -1;
+    for (const s of p) if (s.weight >= w - eps && s.reps > priorBest) priorBest = s.reps;
+    if (priorBest >= 0 && reps > priorBest) result.repsAtWeight.push(w);
+  }
+  result.repsAtWeight.sort((a, b) => a - b);
+  return result;
+}

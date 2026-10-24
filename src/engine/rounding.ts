@@ -1,0 +1,198 @@
+// Weight steps, rounding to achievable weights and the plate calculator.
+import type { Equipment, EquipmentProfile, Exercise, MuscleGroup } from './types.ts';
+
+const LOWER: ReadonlySet<MuscleGroup> = new Set<MuscleGroup>([
+  'quads',
+  'hamstrings',
+  'glutes',
+  'calves',
+  'adductors',
+  'abductors',
+  'lower_back',
+]);
+
+/** Work in units of 10 g to avoid floating point drift (1,25 kg = 125). */
+const UNIT = 100;
+const toU = (kg: number): number => Math.round(kg * UNIT);
+const fromU = (u: number): number => u / UNIT;
+/** Clean float noise, e.g. 72.50000000001 -> 72.5. */
+export const clean = (kg: number): number => Math.round(kg * 1000) / 1000;
+
+/** Muscle groups counted as lower body (for default barbell step). */
+export function isLowerBody(muscle: MuscleGroup): boolean {
+  return LOWER.has(muscle);
+}
+
+/** Default equipment step lookup. */
+export function defaultStepFor(equipment: Equipment, lower: boolean, profile: EquipmentProfile): number {
+  const s = profile.defaultSteps;
+  switch (equipment) {
+    case 'barbell':
+      return lower ? s.barbellLower : s.barbellUpper;
+    case 'dumbbell':
+      return s.dumbbell;
+    case 'machine':
+      return s.machine;
+    case 'cable':
+      return s.cable;
+    case 'kettlebell':
+      return s.kettlebell;
+    case 'bodyweight':
+      return s.bodyweight;
+    default:
+      return s.other;
+  }
+}
+
+type StepInput = Pick<Exercise, 'equipment' | 'weightStep' | 'primaryMuscle'>;
+
+function stepOf(ex: StepInput, profile: EquipmentProfile): number {
+  if (ex.weightStep != null && ex.weightStep > 0) return ex.weightStep;
+  const d = defaultStepFor(ex.equipment, isLowerBody(ex.primaryMuscle), profile);
+  return d > 0 ? d : 2.5;
+}
+
+/** Effective weight step in kg for an exercise (custom step or default from profile). */
+export function weightStepFor(ex: Exercise, profile: EquipmentProfile): number {
+  return stepOf(ex, profile);
+}
+
+function nearestIn(weight: number, options: number[]): number {
+  let best = options[0];
+  for (const o of options) {
+    const d = Math.abs(o - weight);
+    const bd = Math.abs(best - weight);
+    // ties → the lighter option (conservative)
+    if (d < bd - 1e-9 || (Math.abs(d - bd) <= 1e-9 && o < best)) best = o;
+  }
+  return best;
+}
+
+function nearestMultiple(weight: number, step: number): number {
+  if (step <= 0) return clean(weight);
+  // Ties (x.5 steps) round down – conservative.
+  const q = weight / step;
+  const lower = Math.floor(q + 1e-9);
+  const n = q - lower > 0.5 + 1e-9 ? lower + 1 : lower;
+  return clean(Math.max(0, n) * step);
+}
+
+/** Achievable per-side loads (in 10 g units) up to `limitU`, unlimited pairs of each plate. */
+function reachablePerSide(plates: number[], limitU: number): boolean[] {
+  const sizes = [...new Set(plates.map(toU).filter((p) => p > 0))];
+  const ok = new Array<boolean>(limitU + 1).fill(false);
+  ok[0] = true;
+  for (let v = 1; v <= limitU; v++) {
+    for (const p of sizes) {
+      if (p <= v && ok[v - p]) {
+        ok[v] = true;
+        break;
+      }
+    }
+  }
+  return ok;
+}
+
+function roundBarbell(weight: number, profile: EquipmentProfile): number {
+  const bar = profile.barWeight > 0 ? profile.barWeight : 0;
+  const plates = profile.plates.filter((p) => p > 0);
+  if (weight <= bar || plates.length === 0) return clean(bar);
+  const targetPerSideU = (toU(weight) - toU(bar)) / 2;
+  const maxPlateU = Math.max(...plates.map(toU));
+  const limitU = Math.ceil(targetPerSideU) + maxPlateU;
+  const ok = reachablePerSide(plates, limitU);
+  let bestU = 0;
+  let bestD = Infinity;
+  for (let v = 0; v <= limitU; v++) {
+    if (!ok[v]) continue;
+    const d = Math.abs(v - targetPerSideU);
+    if (d < bestD - 1e-9) {
+      bestD = d;
+      bestU = v;
+    }
+  }
+  return clean(fromU(toU(bar) + 2 * bestU));
+}
+
+/**
+ * Round to the nearest weight that can actually be loaded with the user's equipment.
+ * - barbell: bar + 2 × an achievable plate combination (nearest total; ties → lighter).
+ * - dumbbell / kettlebell: nearest available weight in the profile, else nearest step multiple.
+ * - everything else: nearest multiple of the exercise's step.
+ */
+export function roundToAvailable(
+  weightKg: number,
+  ex: Pick<Exercise, 'equipment' | 'weightStep' | 'primaryMuscle' | 'measure'>,
+  profile: EquipmentProfile,
+): number {
+  if (!Number.isFinite(weightKg)) return 0;
+  const w = Math.max(0, weightKg);
+  const step = stepOf(ex, profile);
+  if (ex.measure === 'weight_reps' && ex.equipment === 'barbell') return roundBarbell(w, profile);
+  if (ex.measure === 'weight_reps' && ex.equipment === 'dumbbell' && profile.dumbbells.length > 0) {
+    return clean(nearestIn(w, profile.dumbbells));
+  }
+  if (ex.measure === 'weight_reps' && ex.equipment === 'kettlebell' && profile.kettlebells.length > 0) {
+    return clean(nearestIn(w, profile.kettlebells));
+  }
+  return nearestMultiple(w, step);
+}
+
+/** Smallest achievable weight strictly above `current` (tries current + k × step). */
+export function nextAvailableAbove(
+  current: number,
+  ex: Pick<Exercise, 'equipment' | 'weightStep' | 'primaryMuscle' | 'measure'>,
+  profile: EquipmentProfile,
+): number {
+  const step = stepOf(ex, profile);
+  for (let k = 1; k <= 40; k++) {
+    const r = roundToAvailable(current + k * step, ex, profile);
+    if (r > current + 1e-9) return r;
+  }
+  return clean(current + step);
+}
+
+/** Largest achievable weight strictly below `current` (or 0). */
+export function nextAvailableBelow(
+  current: number,
+  ex: Pick<Exercise, 'equipment' | 'weightStep' | 'primaryMuscle' | 'measure'>,
+  profile: EquipmentProfile,
+): number {
+  const step = stepOf(ex, profile);
+  for (let k = 1; k <= 40; k++) {
+    const target = current - k * step;
+    if (target <= 0) return Math.min(current, roundToAvailable(0, ex, profile));
+    const r = roundToAvailable(target, ex, profile);
+    if (r < current - 1e-9) return r;
+  }
+  return Math.max(0, clean(current - step));
+}
+
+/** Plates per side for a barbell target. */
+export interface PlateResult {
+  perSide: number[]; // largest first
+  achievedTotal: number;
+  remainder: number; // target - achieved (>= 0)
+}
+
+/** Greedy plate calculator: largest plates first, unlimited pairs of each size. */
+export function platesPerSide(targetKg: number, barWeight: number, plates: number[]): PlateResult {
+  const sizes = [...new Set(plates.map(toU).filter((p) => p > 0))].sort((a, b) => b - a);
+  const barU = toU(Math.max(0, barWeight));
+  const perSide: number[] = [];
+  let leftU = Math.floor((toU(targetKg) - barU) / 2);
+  if (leftU > 0) {
+    for (const p of sizes) {
+      while (leftU >= p) {
+        perSide.push(fromU(p));
+        leftU -= p;
+      }
+    }
+  }
+  const achievedU = barU + 2 * perSide.reduce((s, p) => s + toU(p), 0);
+  return {
+    perSide,
+    achievedTotal: fromU(achievedU),
+    remainder: Math.max(0, fromU(toU(targetKg) - achievedU)),
+  };
+}

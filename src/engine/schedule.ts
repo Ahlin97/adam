@@ -1,0 +1,98 @@
+// Program scheduling (weekdays or rotation) and duration estimates.
+import type { Program, WorkoutSession, WorkoutTemplate } from './types.ts';
+
+type CompletedLike = Pick<WorkoutSession, 'programId' | 'templateId' | 'startedAt' | 'status'>;
+
+/** Weekday index with 0 = måndag … 6 = söndag (local time). */
+export function weekdayIndex(date: Date): number {
+  return (date.getDay() + 6) % 7;
+}
+
+const startOfDay = (d: Date): Date => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const addDays = (d: Date, n: number): Date => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+
+/**
+ * Index in program.rotation of the next template, based on the latest completed session of this
+ * program (whose template is in the rotation) started before the end of `date`'s day. 0 if none.
+ */
+function nextRotationIndex(program: Program, completed: CompletedLike[], date: Date): number {
+  const n = program.rotation.length;
+  if (n === 0) return -1;
+  const end = addDays(startOfDay(date), 1).getTime();
+  let latest: CompletedLike | null = null;
+  let latestT = -Infinity;
+  for (const s of completed) {
+    if (s.status !== 'completed' || s.programId !== program.id || !s.templateId) continue;
+    if (!program.rotation.includes(s.templateId)) continue;
+    const t = Date.parse(s.startedAt);
+    if (!Number.isFinite(t) || t >= end) continue;
+    if (t > latestT) {
+      latestT = t;
+      latest = s;
+    }
+  }
+  if (!latest) return 0;
+  return (program.rotation.indexOf(latest.templateId as string) + 1) % n;
+}
+
+/**
+ * Which template the program schedules for `date`.
+ * weekdays: template for that weekday (null = vilodag).
+ * rotation: template after the most recently completed session belonging to this program
+ * (first in rotation if none); always a training day.
+ */
+export function scheduledTemplateId(program: Program, completed: CompletedLike[], date: Date): string | null {
+  if (program.mode === 'weekdays') return program.weekdays[weekdayIndex(date)] ?? null;
+  const i = nextRotationIndex(program, completed, date);
+  return i < 0 ? null : program.rotation[i];
+}
+
+/**
+ * Upcoming schedule: next `count` training days from `from` (inclusive) as { date, templateId }.
+ * Dates are local midnight. In rotation mode the training days are `reminderDays` when any is set,
+ * otherwise every day; templates follow the rotation from the next one due.
+ */
+export function upcomingSchedule(
+  program: Program,
+  completed: CompletedLike[],
+  from: Date,
+  count: number,
+): { date: Date; templateId: string }[] {
+  const out: { date: Date; templateId: string }[] = [];
+  if (count <= 0) return out;
+  const start = startOfDay(from);
+  if (program.mode === 'weekdays') {
+    if (!program.weekdays.some((t) => t)) return out;
+    for (let i = 0; out.length < count && i < count * 7 + 7; i++) {
+      const d = addDays(start, i);
+      const t = program.weekdays[weekdayIndex(d)];
+      if (t) out.push({ date: d, templateId: t });
+    }
+    return out;
+  }
+  const n = program.rotation.length;
+  if (n === 0) return out;
+  // sessions completed on `from` itself advance the rotation too
+  let idx = nextRotationIndex(program, completed, start);
+  const anyDay = program.reminderDays.some(Boolean);
+  for (let i = 0; out.length < count && i < count * 7 + 7; i++) {
+    const d = addDays(start, i);
+    if (anyDay && !program.reminderDays[weekdayIndex(d)]) continue;
+    out.push({ date: d, templateId: program.rotation[idx] });
+    idx = (idx + 1) % n;
+  }
+  return out;
+}
+
+export const WORK_SEC_PER_SET = 45;
+export const WARMUP_SEC_PER_SET = 75;
+
+/** Rough duration estimate in minutes: working sets × (45 s + rest) + warmup sets × 75 s. */
+export function estimateMinutes(template: Pick<WorkoutTemplate, 'exercises'>): number {
+  let sec = 0;
+  for (const e of template.exercises) {
+    sec += Math.max(0, e.sets) * (WORK_SEC_PER_SET + Math.max(0, e.restSec));
+    sec += Math.max(0, e.warmupSets) * WARMUP_SEC_PER_SET;
+  }
+  return Math.round(sec / 60);
+}
