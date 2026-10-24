@@ -21,9 +21,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) return;
     startSyncLoop();
     // getSession reads the persisted session from localStorage, so it works offline.
-    supabase.auth.getSession().then(({ data }) => {
+    // On startup, wait (max 4 s) for the first pull so a new device sees synced data before
+    // seeding starter content; offline this returns immediately.
+    supabase.auth.getSession().then(async ({ data }) => {
+      await Promise.race([setSyncUser(data.session?.user.id ?? null), new Promise((r) => setTimeout(r, 4000))]);
       setState({ loading: false, session: data.session, localOnly: false });
-      void setSyncUser(data.session?.user.id ?? null);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       setState({ loading: false, session, localOnly: false });
