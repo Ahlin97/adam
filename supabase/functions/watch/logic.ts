@@ -195,6 +195,7 @@ function setTypeLabel(type: SetEntry['type']): string {
 /** "8 × 82,5 kg", "8 × kroppsvikt", "45 s". */
 export function setText(reps: number, kg: number | null, ex: Exercise | undefined, unit: Unit, durationSec?: number | null): string {
   if (ex?.measure === 'time') return `${durationSec ?? reps} s`;
+  if (kg === null && ex?.measure !== 'bodyweight_reps') return `${reps} reps`;
   return `${reps} × ${weightText(kg, ex, unit)}`;
 }
 
@@ -529,7 +530,7 @@ export function describeToday(args: {
   const { active, activeSets, plan, exercises, settings } = args;
   if (active) {
     const next = describeNext(active, activeSets, exercises, settings);
-    const head = `Pågående pass: ${active.name} – ${active.exercises.length} övningar, ${next.completedSets} av ${next.plannedSets} set klara.`;
+    const head = `Pågående pass: ${active.name} – ${active.exercises.length} ${active.exercises.length === 1 ? 'övning' : 'övningar'}, ${next.completedSets} av ${next.plannedSets} set klara.`;
     return {
       sessionId: active.id,
       status: 'active',
@@ -546,7 +547,7 @@ export function describeToday(args: {
       return {
         sessionId: null,
         status: 'planned',
-        text: `Idag: ${plan.template.name} – ${plan.template.exercises.length} övningar${names ? ` (${names})` : ''}. Kör "Nästa set" för att starta.`,
+        text: `Idag: ${plan.template.name} – ${plan.template.exercises.length} ${plan.template.exercises.length === 1 ? 'övning' : 'övningar'}${names ? ` (${names})` : ''}. Kör "Nästa set" för att starta.`,
       };
     }
     case 'already_done':
