@@ -1,0 +1,219 @@
+// Pure domain types shared by the web app and the Supabase Edge Function.
+// This folder must stay free of DOM/React/Dexie/Supabase imports and must use
+// explicit `.ts` extensions in relative imports (Deno compatibility).
+// All weights are stored in kilograms.
+
+export type Unit = 'kg' | 'lb';
+
+export type Equipment = 'barbell' | 'dumbbell' | 'machine' | 'cable' | 'bodyweight' | 'kettlebell' | 'other';
+
+export type MuscleGroup =
+  | 'chest'
+  | 'back'
+  | 'lats'
+  | 'traps'
+  | 'shoulders'
+  | 'biceps'
+  | 'triceps'
+  | 'forearms'
+  | 'abs'
+  | 'obliques'
+  | 'lower_back'
+  | 'quads'
+  | 'hamstrings'
+  | 'glutes'
+  | 'calves'
+  | 'adductors'
+  | 'abductors'
+  | 'full_body';
+
+export type ExerciseCategory = 'compound' | 'isolation';
+
+/** weight_reps = vikt × reps, bodyweight_reps = kroppsvikt × reps, time = tid (sekunder). */
+export type MeasureType = 'weight_reps' | 'bodyweight_reps' | 'time';
+
+/** For bodyweight exercises: 'added' = extravikt (positive weight), 'assisted' = assistans (weight stored as positive assistance kg; lower is harder). */
+export type BodyweightMode = 'none' | 'added' | 'assisted';
+
+export type ProgressionRule = 'double' | 'linear' | 'none';
+
+export type SetType = 'warmup' | 'working' | 'drop' | 'failure';
+
+export interface Exercise {
+  id: string;
+  name: string;
+  primaryMuscle: MuscleGroup;
+  secondaryMuscles: MuscleGroup[];
+  equipment: Equipment;
+  category: ExerciseCategory;
+  measure: MeasureType;
+  /** Vikt per hand/sida. */
+  unilateral: boolean;
+  bodyweightMode: BodyweightMode;
+  /** Eget viktsteg i kg; null = standardsteg från inställningar. */
+  weightStep: number | null;
+  notes: string;
+  isCustom: boolean;
+  isFavorite: boolean;
+}
+
+/** Prescription for one exercise in a template or session. repMin === repMax means fixed reps (e.g. 5 × 5). */
+export interface Prescription {
+  sets: number;
+  repMin: number;
+  repMax: number;
+  targetRpe: number | null;
+  restSec: number;
+  warmupSets: number;
+  rule: ProgressionRule;
+}
+
+export interface TemplateExercise extends Prescription {
+  id: string;
+  exerciseId: string;
+  /** Exercises sharing the same non-null group id form a superset. */
+  supersetGroup: string | null;
+  notes: string;
+}
+
+export interface WorkoutTemplate {
+  id: string;
+  name: string;
+  notes: string;
+  exercises: TemplateExercise[];
+}
+
+export interface Program {
+  id: string;
+  name: string;
+  mode: 'weekdays' | 'rotation';
+  /** Index 0 = måndag … 6 = söndag; templateId or null (vilodag). */
+  weekdays: (string | null)[];
+  /** Template ids in rotation order (A → B → C). */
+  rotation: string[];
+  /** Training days for reminders in rotation mode, index 0 = måndag. */
+  reminderDays: boolean[];
+}
+
+export interface SessionExercise extends Prescription {
+  id: string;
+  exerciseId: string;
+  supersetGroup: string | null;
+  notes: string;
+  /** Suggestion computed when the exercise was added to the session (may be null for first time). */
+  suggestion: Suggestion | null;
+}
+
+export interface WorkoutSession {
+  id: string;
+  name: string;
+  templateId: string | null;
+  programId: string | null;
+  status: 'active' | 'completed';
+  startedAt: string; // ISO
+  endedAt: string | null; // ISO
+  notes: string;
+  exercises: SessionExercise[];
+}
+
+export interface SetEntry {
+  id: string;
+  sessionId: string;
+  sessionExerciseId: string;
+  exerciseId: string;
+  /** Sort order within the session exercise. */
+  order: number;
+  type: SetType;
+  reps: number;
+  /** kg. For time exercises 0. For bodyweight: extra load (added) or assistance (assisted). */
+  weight: number;
+  durationSec: number | null;
+  rpe: number | null;
+  completedAt: string; // ISO
+}
+
+export interface DefaultSteps {
+  barbellLower: number; // 5
+  barbellUpper: number; // 2.5
+  dumbbell: number; // 2
+  machine: number; // 5
+  cable: number; // 5
+  kettlebell: number; // 4
+  bodyweight: number; // 2.5 (extra weight / assistance)
+  other: number; // 2.5
+}
+
+/** Equipment the user owns/has access to – used for rounding to achievable weights. */
+export interface EquipmentProfile {
+  barWeight: number; // kg, e.g. 20
+  /** Available plate sizes in kg (one entry per size, unlimited pairs assumed). */
+  plates: number[];
+  /** Available dumbbell weights in kg (per dumbbell). Empty = use step rounding. */
+  dumbbells: number[];
+  /** Available kettlebell weights in kg. Empty = use step rounding. */
+  kettlebells: number[];
+  defaultSteps: DefaultSteps;
+}
+
+export interface Settings extends EquipmentProfile {
+  id: 'settings';
+  unit: Unit;
+  defaultRestSec: number;
+  defaultRule: ProgressionRule;
+  activeProgramId: string | null;
+  soundEnabled: boolean;
+  vibrationEnabled: boolean;
+  remindersEnabled: boolean;
+  reminderTime: string; // "17:00"
+  /** User body weight in kg, used for volume of bodyweight exercises (optional). */
+  bodyWeight: number | null;
+}
+
+// ---------- Engine I/O ----------
+
+/** One previous session's working data for a single exercise. */
+export interface ExerciseHistoryEntry {
+  sessionId: string;
+  date: string; // ISO
+  sets: Pick<SetEntry, 'type' | 'reps' | 'weight' | 'rpe' | 'durationSec'>[];
+  /** The prescription that applied that day (rep range etc.). */
+  prescription: Prescription;
+}
+
+export type SuggestionKind =
+  | 'first_time' // ask for start weight
+  | 'increase' // ↑ höj vikten
+  | 'more_reps' // samma vikt, sikta på fler reps
+  | 'repeat' // samma vikt igen (missade)
+  | 'deload' // ↓ deload 10 %
+  | 'returning' // uppehåll > 14 dagar → ~10 % lägre
+  | 'plateau' // 1RM har inte ökat på 4 veckor
+  | 'add_weight' // kroppsvikt: lägg på extravikt / minska assistans
+  | 'none'; // progression rule 'none' – same as last time
+
+export interface Suggestion {
+  kind: SuggestionKind;
+  /** Suggested working weight in kg; null when first_time (unknown) or time-based. */
+  weight: number | null;
+  /** Suggested reps per working set (or target seconds for time exercises). */
+  reps: number;
+  sets: number;
+  /** Short Swedish motivation, e.g. "↑ Höj till 82,5 kg – du klarade 3 × 12 förra passet". */
+  reason: string;
+  /** True when this suggestion raises the load (used for "redo att höja" badges). */
+  readyToIncrease: boolean;
+  /** Additional plateau warning that may accompany any kind. */
+  plateau: boolean;
+}
+
+export interface NextSet {
+  sessionExerciseId: string;
+  exerciseId: string;
+  /** 1-based number among this exercise's sets (warmups counted first). */
+  setNumber: number;
+  totalSets: number;
+  type: SetType;
+  reps: number;
+  weight: number | null;
+  restSec: number;
+}
