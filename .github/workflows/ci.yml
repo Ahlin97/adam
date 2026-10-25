@@ -1,0 +1,29 @@
+# Typecheck, test and build on every push and pull request, so a broken change is caught
+# before Netlify publishes it. Node version matches netlify.toml.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Typkontroll
+        run: npm run typecheck
+      - name: Tester
+        run: npm test
+      - name: Bygge
+        run: npm run build
