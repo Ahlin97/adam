@@ -7,7 +7,9 @@ import { useActiveSession, useCompletedSessions, useExerciseMap, usePrograms, us
 import { Button, Card, EmptyState, Page, Sheet, cx } from '@/ui';
 import { formatDate, formatLongDate } from '@/lib/format';
 import { startSession } from '@/features/workout/start';
-import { BookOpen, CalendarDays, Clock, Dumbbell, Layers, Play, Plus, TrendingUp } from 'lucide-react';
+import { BookOpen, CalendarDays, Check, Clock, Dumbbell, Flame, Layers, Play, Plus, TrendingUp } from 'lucide-react';
+import { WEEKDAY_LABELS, WEEKDAY_SHORT } from '@/lib/labels';
+import { weekProgress, type WeekProgress } from './weekProgress';
 
 function safe<T>(fn: () => T, fallback: T): T {
   try {
@@ -170,6 +172,10 @@ export default function HomePage() {
         </Card>
       )}
 
+      {!loading && (program || (completed?.length ?? 0) > 0) && (
+        <WeekStrip progress={weekProgress(program, completed ?? [], today)} today={today} />
+      )}
+
       {!loading && program && upcoming.length > 0 && (
         <section className="mt-6" aria-labelledby="upcoming-h">
           <SectionTitle id="upcoming-h">Står på tur</SectionTitle>
@@ -237,6 +243,62 @@ export default function HomePage() {
         </div>
       </Sheet>
     </Page>
+  );
+}
+
+/** This week Mon–Sun: planned days outlined, trained days filled, plus goal and streak. */
+function WeekStrip({ progress, today }: { progress: WeekProgress; today: Date }) {
+  const { planned, trained, done, goal, streak } = progress;
+  const todayIdx = (today.getDay() + 6) % 7;
+  const reached = goal != null && done >= goal;
+  return (
+    <section className="card mt-6 space-y-3 p-4" aria-labelledby="week-h">
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 id="week-h" className="text-xs font-bold uppercase tracking-[0.14em] text-muted">
+          Den här veckan
+        </h2>
+        {streak > 1 && (
+          <span className="inline-flex items-center gap-1 text-sm font-bold text-accent">
+            <Flame aria-hidden size={16} /> {streak} veckor i rad
+          </span>
+        )}
+      </div>
+      <p className="text-2xl font-extrabold">
+        {goal != null ? (
+          <>
+            {done} av {goal} pass{reached && <span className="text-accent"> – mål nått!</span>}
+          </>
+        ) : (
+          `${done} pass`
+        )}
+      </p>
+      <ol className="grid grid-cols-7 gap-1.5" aria-label="Veckodagar">
+        {WEEKDAY_SHORT.map((d, i) => {
+          const label = `${WEEKDAY_LABELS[i]}: ${trained[i] ? 'tränat' : planned[i] ? (i < todayIdx ? 'missat' : 'planerat') : 'vila'}`;
+          return (
+            <li key={d} aria-label={label} className="flex flex-col items-center gap-1">
+              <span
+                aria-hidden
+                className={cx(
+                  'flex size-9 items-center justify-center rounded-full text-xs font-bold',
+                  trained[i]
+                    ? 'bg-accent text-accent-fg'
+                    : planned[i]
+                      ? cx('border-2', i < todayIdx ? 'border-border text-muted' : 'border-accent/60 text-fg')
+                      : 'bg-surface-2/60 text-muted',
+                  i === todayIdx && 'ring-2 ring-fg/30 ring-offset-2 ring-offset-surface',
+                )}
+              >
+                {trained[i] && <Check size={16} strokeWidth={3} />}
+              </span>
+              <span aria-hidden className={cx('text-[0.65rem] font-bold', i === todayIdx ? 'text-fg' : 'text-muted')}>
+                {d}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
   );
 }
 
