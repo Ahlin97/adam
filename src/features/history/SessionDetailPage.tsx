@@ -5,7 +5,7 @@ import type { SessionExercise, SetEntry } from '@/engine';
 import { useExerciseMap, useSession, useSessionSets, useSettings } from '@/db/hooks';
 import { putMany } from '@/db/repo';
 import { Button, Card, EmptyState, Field, Page, Sheet, cx, inputClass } from '@/ui';
-import { formatDuration, formatLongDate } from '@/lib/format';
+import { formatLongDate, formatSessionLength } from '@/lib/format';
 import { fmtNum, safeSummary } from '@/features/workout/safeEngine';
 import { setText, volumeText } from '@/features/workout/setFormat';
 import { SetEditSheet, type SetValues } from '@/features/workout/SetEditSheet';
@@ -73,7 +73,7 @@ export default function SessionDetailPage() {
         <div>
           <p className="text-muted">{formatLongDate(session.startedAt)}</p>
           <p className="tabular mt-1">
-            {formatDuration(sum.durationSec)} · {sum.setCount} set · {volumeText(sum.volumeKg, unit)}
+            {formatSessionLength(sum.durationSec)} · {sum.setCount} set · {volumeText(sum.volumeKg, unit)}
           </p>
         </div>
 

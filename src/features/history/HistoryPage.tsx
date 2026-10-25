@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import type { SetEntry, Unit, WorkoutSession } from '@/engine';
 import { useAllSets, useCompletedSessions, useSettings } from '@/db/hooks';
 import { Chip, EmptyState, ListLink, Page, cx } from '@/ui';
-import { dayKey, formatDate, formatDuration, formatTime } from '@/lib/format';
+import { dayKey, formatDate, formatSessionLength, formatTime } from '@/lib/format';
 import { safeSummary } from '@/features/workout/safeEngine';
 import { volumeText } from '@/features/workout/setFormat';
 
@@ -91,7 +91,7 @@ function SessionList({
                 <span className="shrink-0 text-sm text-muted">{withDate ? formatDate(s.startedAt) : formatTime(s.startedAt)}</span>
               </div>
               <div className="tabular text-sm text-muted">
-                {formatDuration(sum.durationSec)} · {sum.setCount} set · {volumeText(sum.volumeKg, unit)}
+                {formatSessionLength(sum.durationSec)} · {sum.setCount} set · {volumeText(sum.volumeKg, unit)}
               </div>
             </ListLink>
           </li>

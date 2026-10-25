@@ -18,6 +18,16 @@ export function formatDuration(totalSec: number): string {
   return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`;
 }
 
+/** Length of a finished pass in words: "under 1 min", "45 min", "1 h 5 min". Timers keep formatDuration. */
+export function formatSessionLength(totalSec: number): string {
+  if (totalSec < 60) return 'under 1 min';
+  const min = Math.round(totalSec / 60);
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (!h) return `${m} min`;
+  return m ? `${h} h ${m} min` : `${h} h`;
+}
+
 /** Local date key "2026-10-24". */
 export function dayKey(d: Date | string): string {
   const x = new Date(d);

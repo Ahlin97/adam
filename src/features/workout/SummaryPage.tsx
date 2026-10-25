@@ -6,7 +6,7 @@ import { db } from '@/db/db';
 import { strip } from '@/db/repo';
 import { useExerciseMap, useSession, useSessionSets, useSettings } from '@/db/hooks';
 import { Button, Card, EmptyState, Page } from '@/ui';
-import { formatDuration, formatLongDate } from '@/lib/format';
+import { formatLongDate, formatSessionLength } from '@/lib/format';
 import { epley, fmtNum, fmtWeight, safeNewRecords, safeSummary } from './safeEngine';
 import { describeSets, isTime, volumeText } from './setFormat';
 
@@ -94,7 +94,7 @@ export default function SummaryPage() {
         </div>
 
         <div className="grid grid-cols-3 gap-2">
-          <Stat label="Tid" value={formatDuration(summary.durationSec)} />
+          <Stat label="Tid" value={formatSessionLength(summary.durationSec)} />
           <Stat label="Set" value={String(summary.setCount)} />
           <Stat label="Volym" value={volumeText(summary.volumeKg, unit)} />
         </div>
