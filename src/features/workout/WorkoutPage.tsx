@@ -30,7 +30,7 @@ import { safeNextSet, safeNextSetFor, stepFor } from './safeEngine';
 import { NumberStepper, RpePicker, SetTypePicker, TypeBadge, WeightJumps, WeightStepper } from './inputs';
 import { isBodyweight, isTime, lastTimeText, setText, weightLabel, weightText } from './setFormat';
 import { SetEditSheet } from './SetEditSheet';
-import PlateCalculator from './PlateCalculator';
+import PlateCalculator, { PlateHint } from './PlateCalculator';
 import { RestDoneOverlay, RestTimerPanel } from './RestTimerPanel';
 import { clearRest, startRest, useRestTimer } from './restTimer';
 import { unlockAudio } from './alerts';
@@ -681,6 +681,7 @@ function CurrentSetCard({
           <>
             <WeightStepper label={weightLabel(exercise, settings.unit)} kg={weight} stepKg={step} unit={settings.unit} onChange={setWeight} />
             <WeightJumps kg={weight} stepKg={step} unit={settings.unit} onChange={setWeight} />
+            {exercise?.equipment === 'barbell' && <PlateHint kg={weight} />}
           </>
         )}
         {time ? (

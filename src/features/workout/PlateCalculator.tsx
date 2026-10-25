@@ -37,6 +37,34 @@ export function PlateStack({ perSide, maxPlate }: { perSide: number[]; maxPlate:
   );
 }
 
+/** "2 × 20 + 5 + 1,25" for plates per side (largest first). */
+export function platesText(perSide: number[]): string {
+  const groups: { kg: number; n: number }[] = [];
+  for (const p of perSide) {
+    const last = groups[groups.length - 1];
+    if (last && last.kg === p) last.n++;
+    else groups.push({ kg: p, n: 1 });
+  }
+  return groups.map((g) => (g.n > 1 ? `${g.n} × ${fmtNum(g.kg)}` : fmtNum(g.kg))).join(' + ');
+}
+
+/** One line under the weight on the set card: what to load per side, or why it does not add up. */
+export function PlateHint({ kg }: { kg: number }) {
+  const settings = useSettings();
+  if (settings.unit !== 'kg' || kg <= 0) return null;
+  const r = safePlates(kg, settings.barWeight, settings.plates);
+  const text =
+    kg <= settings.barWeight
+      ? kg === settings.barWeight
+        ? 'Bara stången'
+        : null
+      : r.perSide.length === 0
+        ? null
+        : `${platesText(r.perSide)} per sida${r.remainder > 0 ? ` (≈ ${fmtWeight(r.achievedTotal, 'kg')})` : ''}`;
+  if (!text) return null;
+  return <p className="tabular text-center text-sm font-semibold text-muted">🏋️ {text}</p>;
+}
+
 export function PlateCalculatorBody({ initialKg }: { initialKg?: number }) {
   const settings = useSettings();
   const [target, setTarget] = useState(() => Math.max(settings.barWeight, initialKg ?? settings.barWeight + 40));
