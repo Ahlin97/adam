@@ -1,4 +1,5 @@
 // Big-touch-target numeric inputs used by the logger, set editor and plate calculator.
+import { Minus, Plus } from 'lucide-react';
 import { useState } from 'react';
 import type { Unit } from '@/engine';
 import { Button, Chip, cx } from '@/ui';
@@ -30,7 +31,8 @@ export function NumberStepper({
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
-  const btn = size === 'lg' ? 'min-h-16 min-w-16 text-3xl' : 'min-h-12 min-w-12 text-2xl';
+  const btn = size === 'lg' ? 'min-h-16 min-w-16 rounded-2xl' : 'min-h-12 min-w-12 rounded-xl';
+  const icon = size === 'lg' ? 26 : 20;
   const commit = () => {
     const n = parseFloat(draft.replace(',', '.').replace(/\s/g, ''));
     if (Number.isFinite(n)) onChange(Math.max(min, round3(n)));
@@ -39,10 +41,10 @@ export function NumberStepper({
   return (
     <div className="flex items-center gap-2" role="group" aria-label={label}>
       <Button className={btn} aria-label={`Minska ${label}`} onClick={() => onChange(Math.max(min, round3(value - step)))}>
-        −
+        <Minus aria-hidden size={icon} strokeWidth={3} />
       </Button>
       <div className="min-w-0 flex-1 text-center">
-        <div className="truncate text-xs text-muted">{label}</div>
+        <div className="truncate text-[0.7rem] font-bold uppercase tracking-wider text-muted">{label}</div>
         {editing ? (
           <input
             autoFocus
@@ -60,7 +62,7 @@ export function NumberStepper({
         ) : (
           <button
             type="button"
-            className={cx('tabular w-full rounded-lg font-bold active:bg-surface-2', size === 'lg' ? 'text-3xl' : 'text-xl')}
+            className={cx('tabular w-full rounded-xl font-black tracking-tight active:bg-surface-2', size === 'lg' ? 'text-4xl' : 'text-xl')}
             aria-label={`${label}: ${fmtNum(value, decimals)}${suffix ? ' ' + suffix : ''}. Tryck för att skriva in`}
             onClick={() => {
               setDraft(fmtNum(value, decimals).replace(/\s/g, ''));
@@ -73,7 +75,7 @@ export function NumberStepper({
         )}
       </div>
       <Button className={btn} aria-label={`Öka ${label}`} onClick={() => onChange(round3(value + step))}>
-        +
+        <Plus aria-hidden size={icon} strokeWidth={3} />
       </Button>
     </div>
   );
@@ -147,9 +149,9 @@ export function RpePicker({ value, onChange }: { value: number | null; onChange:
 export function TypeBadge({ type }: { type: SetType }) {
   const color: Record<SetType, string> = {
     warmup: 'bg-warn/20 text-warn',
-    working: 'bg-accent/20 text-accent',
+    working: 'bg-accent/15 text-accent',
     drop: 'bg-surface-2 text-fg',
     failure: 'bg-bad/20 text-bad',
   };
-  return <span className={cx('rounded-full px-2 py-0.5 text-xs font-semibold', color[type])}>{SET_TYPE_LABELS[type]}</span>;
+  return <span className={cx('rounded-full px-2.5 py-0.5 text-xs font-bold', color[type])}>{SET_TYPE_LABELS[type]}</span>;
 }

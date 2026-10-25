@@ -1,5 +1,6 @@
 // The active session logger. All state that matters lives in IndexedDB (session, sets, rest timer);
 // React state only holds transient UI (which sheet is open, the set being edited before "Klar").
+import { Check, ChevronLeft, Flag, History, MoreHorizontal, Plus, SlidersHorizontal, TrendingUp } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -246,27 +247,28 @@ function ActiveWorkout({
 
   return (
     <div className="mx-auto max-w-xl">
-      <header className="pt-safe sticky top-0 z-20 border-b border-border bg-bg/95 backdrop-blur">
+      <header className="pt-safe glass sticky top-0 z-20 border-b border-white/5">
         <div className="flex min-h-14 items-center gap-2 px-2">
           <button
             type="button"
             aria-label="Till startsidan (passet fortsätter)"
-            className="min-h-12 min-w-12 rounded-xl text-2xl active:bg-surface-2"
+            className="press flex min-h-11 min-w-11 items-center justify-center rounded-full bg-surface-2 active:bg-border"
             onClick={() => navigate('/')}
           >
-            ‹
+            <ChevronLeft aria-hidden size={22} strokeWidth={2.5} />
           </button>
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-lg font-bold leading-tight">{session.name}</h1>
-            <div className="tabular text-sm text-muted" aria-label={`Tid: ${elapsed}`}>
-              ⏱ {elapsed} · {totalLogged} set
+            <h1 className="truncate text-lg font-extrabold leading-tight">{session.name}</h1>
+            <div className="tabular flex items-center gap-1.5 text-sm font-medium text-muted" aria-label={`Tid: ${elapsed}`}>
+              <span aria-hidden className="size-1.5 animate-pulse rounded-full bg-accent" />
+              {elapsed} · {totalLogged} set
             </div>
           </div>
-          <Button variant="ghost" aria-label="Passmeny" onClick={() => setSessionMenu(true)} className="text-2xl">
-            ⋯
+          <Button variant="ghost" aria-label="Passmeny" onClick={() => setSessionMenu(true)} className="min-w-11 rounded-full px-0">
+            <MoreHorizontal aria-hidden size={22} />
           </Button>
-          <Button variant="primary" onClick={() => setFinishOpen(true)}>
-            Avsluta
+          <Button variant="secondary" size="sm" onClick={() => setFinishOpen(true)} className="rounded-full px-4">
+            <Flag aria-hidden size={16} /> Avsluta
           </Button>
         </div>
       </header>
@@ -304,33 +306,34 @@ function ActiveWorkout({
               <li key={se.id}>
                 <div
                   className={cx(
-                    'rounded-2xl border bg-surface',
-                    isCurrent ? 'border-accent ring-2 ring-accent/40' : 'border-border',
-                    inSuperset && 'border-l-4 border-l-warn',
+                    'card',
+                    isCurrent && 'border-accent/70! shadow-[0_0_0_1px_rgb(212_255_58/0.35),0_12px_32px_-18px_rgb(212_255_58/0.5)]!',
+                    complete && !isCurrent && 'opacity-70',
+                    inSuperset && 'border-l-4! border-l-accent/60!',
                   )}
                 >
                   <div className="flex items-stretch">
                     <button
                       type="button"
-                      className="flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-l-2xl px-3 py-2 text-left active:bg-surface-2"
+                      className="flex min-h-16 min-w-0 flex-1 items-center gap-3 rounded-l-[1.5rem] px-3 py-2 text-left active:bg-surface-2"
                       onClick={() => setFocusId(se.id)}
                       aria-label={`${ex?.name ?? 'Övning'}, ${logged.length} av ${total} set. Logga denna övning`}
                     >
                       <span
                         aria-hidden
                         className={cx(
-                          'flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold',
-                          complete ? 'bg-good text-black' : 'bg-surface-2 text-muted',
+                          'tabular flex size-10 shrink-0 items-center justify-center rounded-2xl text-sm font-extrabold',
+                          complete ? 'bg-accent text-accent-fg' : isCurrent ? 'bg-accent/15 text-accent' : 'bg-surface-2 text-muted',
                         )}
                       >
-                        {complete ? '✓' : i + 1}
+                        {complete ? <Check size={18} strokeWidth={3} /> : i + 1}
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center gap-2">
-                          <span className="truncate font-semibold">{ex?.name ?? 'Okänd övning'}</span>
+                          <span className="truncate font-bold">{ex?.name ?? 'Okänd övning'}</span>
                           {se.suggestion?.readyToIncrease && (
-                            <span className="shrink-0 rounded-full bg-good/20 px-2 text-xs font-bold text-good" title="Redo att höja">
-                              ↑ höj
+                            <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-accent px-2 py-0.5 text-xs font-extrabold text-accent-fg" title="Redo att höja">
+                              <TrendingUp aria-hidden size={12} strokeWidth={3} /> Höj
                             </span>
                           )}
                         </span>
@@ -343,11 +346,11 @@ function ActiveWorkout({
                     </button>
                     <button
                       type="button"
-                      className="min-h-14 min-w-12 rounded-r-2xl text-2xl text-muted active:bg-surface-2"
+                      className="flex min-h-16 min-w-12 items-center justify-center rounded-r-[1.5rem] text-muted active:bg-surface-2"
                       aria-label={`Meny för ${ex?.name ?? 'övning'}`}
                       onClick={() => setExMenu(se.id)}
                     >
-                      ⋯
+                      <MoreHorizontal aria-hidden size={22} />
                     </button>
                   </div>
                   {logged.length > 0 && (
@@ -357,8 +360,8 @@ function ActiveWorkout({
                           <button
                             type="button"
                             className={cx(
-                              'tabular min-h-10 rounded-lg border px-2 text-sm',
-                              s.type === 'warmup' ? 'border-warn/40 text-warn' : 'border-border',
+                              'press tabular min-h-10 rounded-full px-3 text-sm font-semibold',
+                              s.type === 'warmup' ? 'bg-warn/10 text-warn' : 'bg-surface-2 text-fg',
                             )}
                             onClick={() => setEditSet(s)}
                             aria-label={`Set ${k + 1}: ${setText(s, ex, settings.unit)}. Tryck för att ändra`}
@@ -377,12 +380,12 @@ function ActiveWorkout({
           })}
         </ol>
 
-        <Button size="lg" className="w-full" onClick={() => setPicker({ kind: 'add' })}>
-          + Lägg till övning
+        <Button size="lg" variant="ghost" className="w-full border border-dashed border-border" onClick={() => setPicker({ kind: 'add' })}>
+          <Plus aria-hidden size={20} /> Lägg till övning
         </Button>
       </main>
 
-      <div ref={bottomRef} className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-border bg-bg/95 backdrop-blur">
+      <div ref={bottomRef} className="pb-safe glass fixed inset-x-0 bottom-0 z-30 rounded-t-[2rem] border-t border-white/8 shadow-[0_-16px_40px_-20px_rgb(0_0_0/0.9)]">
         <div className="mx-auto max-w-xl space-y-2 p-2">
           {rest.phase === 'running' && rest.state && <RestTimerPanel state={rest.state} remainingMs={rest.remainingMs} />}
           {current ? (
@@ -581,36 +584,45 @@ function CurrentSetCard({
   const showWeight = !time;
 
   return (
-    <section aria-label="Nästa set" className="rounded-2xl border border-border bg-surface p-3">
+    <section aria-label="Nästa set" className="px-1 pt-1">
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-xl font-bold leading-tight">{exercise?.name ?? 'Okänd övning'}</h2>
-          <div className="mt-0.5 flex items-center gap-2 text-sm">
-            <span className="font-semibold">
+          <h2 className="truncate text-2xl font-black leading-tight">{exercise?.name ?? 'Okänd övning'}</h2>
+          <div className="mt-1 flex items-center gap-2 text-sm">
+            <span className="tabular rounded-full bg-surface-2 px-2.5 py-0.5 font-bold">
               Set {next.setNumber} av {Math.max(next.totalSets, next.setNumber)}
             </span>
             <TypeBadge type={type} />
             {se.targetRpe != null && <span className="text-muted">mål-RPE {String(se.targetRpe).replace('.', ',')}</span>}
           </div>
         </div>
-        <Button size="sm" variant="ghost" aria-expanded={more} onClick={() => setMore((m) => !m)}>
-          {more ? 'Färre val ▴' : 'Fler val ▾'}
+        <Button size="sm" variant="secondary" className="rounded-full" aria-expanded={more} aria-label={more ? 'Färre val' : 'Fler val'} onClick={() => setMore((m) => !m)}>
+          <SlidersHorizontal aria-hidden size={16} /> {more ? 'Färre' : 'Mer'}
         </Button>
       </div>
 
-      <div className="mt-1 space-y-0.5 text-sm">
+      <div className="mt-2 space-y-1 text-sm">
         {showReason && (
-          <p className={cx(suggestion!.readyToIncrease ? 'font-semibold text-good' : suggestion!.kind === 'deload' ? 'text-warn' : 'text-fg')}>
+          <p
+            className={cx(
+              'rounded-xl px-3 py-1.5 font-semibold',
+              suggestion!.readyToIncrease ? 'bg-accent/12 text-accent' : suggestion!.kind === 'deload' ? 'bg-warn/10 text-warn' : 'bg-surface-2 text-fg',
+            )}
+          >
             {suggestion!.reason}
           </p>
         )}
         {suggestion?.plateau && <p className="text-warn">Platå – överväg deload eller nytt repsintervall.</p>}
-        {last ? <p className="text-muted">Förra gången: {last}</p> : null}
+        {last ? (
+          <p className="flex items-center gap-1.5 px-1 text-muted">
+            <History aria-hidden size={14} /> Förra gången: <span className="font-semibold text-fg">{last}</span>
+          </p>
+        ) : null}
         {current.firstTime && <p className="font-semibold text-warn">Första gången – välj en startvikt.</p>}
       </div>
 
       {more && (
-        <div className="mt-3 space-y-3 rounded-xl bg-surface-2/50 p-2">
+        <div className="mt-3 space-y-3 rounded-2xl bg-surface-2/50 p-3">
           <SetTypePicker value={type} onChange={setType} />
           <div>
             <div className="mb-1 text-xs text-muted">RPE (valfritt)</div>
@@ -634,7 +646,7 @@ function CurrentSetCard({
       <Button
         variant="good"
         size="xl"
-        className="mt-3 min-h-20 w-full text-3xl"
+        className="mt-3 mb-1 min-h-20 w-full text-3xl font-black"
         disabled={saving || reps <= 0}
         aria-label={`Klar: ${time ? `${reps} sekunder` : `${reps} reps`}${showWeight ? `, ${weightText(weight, exercise, settings.unit)}` : ''}`}
         onClick={async () => {
@@ -653,7 +665,7 @@ function CurrentSetCard({
           }
         }}
       >
-        Klar ✓
+        <Check aria-hidden size={30} strokeWidth={3.5} /> Klar
       </Button>
     </section>
   );

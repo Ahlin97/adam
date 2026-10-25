@@ -7,6 +7,7 @@ import { useActiveSession, useCompletedSessions, useExerciseMap, usePrograms, us
 import { Button, Card, EmptyState, Page, Sheet, cx } from '@/ui';
 import { formatDate, formatLongDate } from '@/lib/format';
 import { startSession } from '@/features/workout/start';
+import { ArrowUpRight, BookOpen, CalendarDays, Clock, Dumbbell, Layers, ListChecks, Play, Plus, TrendingUp } from 'lucide-react';
 
 function safe<T>(fn: () => T, fallback: T): T {
   try {
@@ -126,7 +127,9 @@ export default function HomePage() {
 
   return (
     <Page title="Idag">
-      <p className="mb-4 text-sm text-muted first-letter:uppercase">{formatLongDate(today)}</p>
+      <p className="mb-5 text-sm font-medium text-muted first-letter:uppercase">
+        {greeting(today)} · {formatLongDate(today)}
+      </p>
 
       {error && (
         <p role="alert" className="mb-4 rounded-xl bg-bad/20 p-3 text-bad">
@@ -137,16 +140,19 @@ export default function HomePage() {
       {loading ? null : active ? (
         <ActiveCard session={active} onContinue={() => navigate('/workout')} />
       ) : !program ? (
-        <Card className="space-y-3">
-          <h2 className="text-xl font-bold">Inget aktivt program</h2>
-          <p className="text-muted">Välj ett program så visar vi dagens pass och vad som står på tur.</p>
+        <div className="card-hero space-y-4 p-5">
+          <span className="inline-flex size-12 items-center justify-center rounded-2xl bg-accent text-accent-fg">
+            <CalendarDays aria-hidden size={24} />
+          </span>
+          <h2 className="text-2xl font-extrabold">Välj ett program</h2>
+          <p className="text-muted">Då visar vi dagens pass och vad som står på tur – och säger till när det är dags att höja.</p>
           <Link
             to="/programs"
-            className="flex min-h-14 items-center justify-center rounded-xl bg-accent px-5 text-lg font-semibold text-accent-fg"
+            className="press flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-accent px-5 text-lg font-bold text-accent-fg"
           >
-            Välj program
+            Välj program <ArrowUpRight aria-hidden size={20} />
           </Link>
-        </Card>
+        </div>
       ) : todayTemplate ? (
         <TodayCard
           template={todayTemplate}
@@ -161,29 +167,31 @@ export default function HomePage() {
           Mallen i programmet finns inte längre. <Link className="text-accent underline" to={`/programs/${program.id}`}>Redigera programmet</Link>
         </EmptyState>
       ) : (
-        <Card className="space-y-3">
-          <p className="text-sm text-muted">{program.name}</p>
-          <h2 className="text-2xl font-bold">Vilodag</h2>
+        <Card className="space-y-3 p-5">
+          <Eyebrow>{program.name}</Eyebrow>
+          <h2 className="text-3xl font-extrabold">Vilodag</h2>
           <p className="text-muted">Inget pass planerat idag. Vila och återhämta dig – eller kör ändå.</p>
           <Button size="lg" className="w-full" onClick={() => setPickOpen(true)} disabled={starting}>
-            Träna ändå
+            <Dumbbell aria-hidden size={20} /> Träna ändå
           </Button>
         </Card>
       )}
 
       {!loading && program && upcoming.length > 0 && (
         <section className="mt-6" aria-labelledby="upcoming-h">
-          <h2 id="upcoming-h" className="mb-2 text-lg font-bold">
-            Står på tur
-          </h2>
-          <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
+          <SectionTitle id="upcoming-h">Står på tur</SectionTitle>
+          <ul className="card divide-y divide-border overflow-hidden">
             {upcoming.map((u, i) => {
               const t = templateMap.get(u.templateId);
+              const [wd, ...rest] = formatDate(u.date).split(' ');
               return (
-                <li key={`${u.templateId}-${i}`} className="flex min-h-14 items-center gap-3 px-4 py-2">
-                  <span className="w-24 shrink-0 text-sm text-muted first-letter:uppercase">{formatDate(u.date)}</span>
+                <li key={`${u.templateId}-${i}`} className="flex min-h-16 items-center gap-4 px-4 py-3">
+                  <span className="flex size-12 shrink-0 flex-col items-center justify-center rounded-2xl bg-surface-2 leading-tight">
+                    <span className="text-[0.65rem] font-bold uppercase tracking-wider text-muted">{wd.replace('.', '')}</span>
+                    <span className="tabular text-lg font-extrabold">{rest.join(' ').replace(/\D+/g, '')}</span>
+                  </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-semibold">{t?.name ?? 'Okänd mall'}</span>
+                    <span className="block truncate font-bold">{t?.name ?? 'Okänd mall'}</span>
                     {t && <span className="block text-sm text-muted">{summaryText(t)}</span>}
                   </span>
                 </li>
@@ -195,19 +203,17 @@ export default function HomePage() {
 
       {!loading && (
         <section className="mt-6" aria-labelledby="quick-h">
-          <h2 id="quick-h" className="mb-2 text-lg font-bold">
-            Snabbval
-          </h2>
+          <SectionTitle id="quick-h">Snabbval</SectionTitle>
           <div className="grid grid-cols-2 gap-3">
             {!active && (
               <Button className="col-span-2" size="lg" onClick={() => void start(null, null)} disabled={starting}>
-                Starta tomt pass
+                <Plus aria-hidden size={20} /> Starta tomt pass
               </Button>
             )}
-            <QuickLink to="/templates">Välj passmall</QuickLink>
-            <QuickLink to="/programs">Program</QuickLink>
-            <QuickLink to="/exercises">Övningar</QuickLink>
-            <QuickLink to="/history">Historik</QuickLink>
+            <QuickLink to="/templates" icon={<ListChecks size={20} />}>Passmallar</QuickLink>
+            <QuickLink to="/programs" icon={<Layers size={20} />}>Program</QuickLink>
+            <QuickLink to="/exercises" icon={<BookOpen size={20} />}>Övningar</QuickLink>
+            <QuickLink to="/stats" icon={<TrendingUp size={20} />}>Statistik</QuickLink>
           </div>
         </section>
       )}
@@ -223,7 +229,7 @@ export default function HomePage() {
                 setPickOpen(false);
                 void start(t.id, program?.id ?? null);
               }}
-              className="flex min-h-14 w-full flex-col items-start justify-center rounded-xl bg-surface-2 px-4 py-2 text-left active:bg-border"
+              className="press flex min-h-14 w-full flex-col items-start justify-center rounded-2xl bg-surface-2 px-4 py-2 text-left active:bg-border"
             >
               <span className="font-semibold">{t.name}</span>
               <span className="text-sm text-muted">{summaryText(t)}</span>
@@ -231,7 +237,7 @@ export default function HomePage() {
           ))}
           <Link
             to="/templates"
-            className="flex min-h-12 items-center justify-center rounded-xl border border-border px-4 font-semibold"
+            className="press flex min-h-12 items-center justify-center rounded-2xl border border-border px-4 font-semibold"
           >
             Alla passmallar
           </Link>
@@ -241,29 +247,64 @@ export default function HomePage() {
   );
 }
 
-function QuickLink({ to, children }: { to: string; children: React.ReactNode }) {
+function greeting(d: Date): string {
+  const h = d.getHours();
+  return h < 5 ? 'God natt' : h < 10 ? 'God morgon' : h < 17 ? 'Hej' : 'God kväll';
+}
+
+function Eyebrow({ children }: { children: React.ReactNode }) {
+  return <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted">{children}</p>;
+}
+
+function SectionTitle({ id, children }: { id: string; children: React.ReactNode }) {
   return (
-    <Link
-      to={to}
-      className="flex min-h-14 items-center justify-center rounded-xl border border-border bg-surface-2 px-3 text-center font-semibold active:bg-border"
-    >
+    <h2 id={id} className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-muted">
+      {children}
+    </h2>
+  );
+}
+
+function QuickLink({ to, icon, children }: { to: string; icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <Link to={to} className="card press flex min-h-24 flex-col justify-between gap-3 p-4 font-bold active:bg-surface-2">
+      <span aria-hidden className="flex size-10 items-center justify-center rounded-xl bg-surface-2 text-accent">
+        {icon}
+      </span>
       {children}
     </Link>
   );
 }
 
+function Stat({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) {
+  return (
+    <div className="flex-1 rounded-2xl bg-black/25 px-3 py-2.5">
+      <div className="flex items-center gap-1.5 text-muted">
+        <span aria-hidden>{icon}</span>
+        <span className="text-[0.7rem] font-bold uppercase tracking-wider">{label}</span>
+      </div>
+      <div className="tabular mt-0.5 text-xl font-extrabold">{value}</div>
+    </div>
+  );
+}
+
 function ActiveCard({ session, onContinue }: { session: WorkoutSession; onContinue: () => void }) {
   return (
-    <Card className="space-y-3 border-good">
-      <p className="text-sm text-muted">Pågående pass</p>
-      <h2 className="text-2xl font-bold">{session.name || 'Pass'}</h2>
+    <div className="card-hero space-y-4 p-5">
+      <div className="flex items-center gap-2">
+        <span className="relative flex size-2.5">
+          <span className="absolute inline-flex size-full animate-ping rounded-full bg-accent opacity-75" />
+          <span className="relative inline-flex size-2.5 rounded-full bg-accent" />
+        </span>
+        <Eyebrow>Pågående pass</Eyebrow>
+      </div>
+      <h2 className="text-3xl font-extrabold">{session.name || 'Pass'}</h2>
       <p className="text-muted">
         {session.exercises.length} {session.exercises.length === 1 ? 'övning' : 'övningar'} · startat {formatDate(session.startedAt)}
       </p>
-      <Button variant="good" size="xl" className="w-full" onClick={onContinue}>
-        Fortsätt pass
+      <Button variant="primary" size="xl" className="w-full" onClick={onContinue}>
+        <Play aria-hidden size={24} fill="currentColor" /> Fortsätt pass
       </Button>
-    </Card>
+    </div>
   );
 }
 
@@ -282,35 +323,50 @@ function TodayCard({
   starting: boolean;
   onStart: () => void;
 }) {
+  const n = template.exercises.length;
+  const min = minutesFor(template);
+  const sets = template.exercises.reduce((sum, te) => sum + te.sets, 0);
   return (
-    <Card className="space-y-4">
-      <div>
-        <p className="text-sm text-muted">{programName}</p>
-        <h2 className="text-2xl font-bold">
-          Idag: {template.name} – {summaryText(template)}
-        </h2>
+    <section className="card-hero space-y-5 p-5" aria-label={`Idag: ${template.name} – ${summaryText(template)}`}>
+      <div className="space-y-1">
+        <Eyebrow>Idag · {programName}</Eyebrow>
+        <h2 className="text-4xl font-black leading-tight">{template.name}</h2>
       </div>
-      {template.exercises.length > 0 && (
+      <div className="flex gap-2">
+        <Stat icon={<Dumbbell size={14} />} value={String(n)} label={n === 1 ? 'Övning' : 'Övningar'} />
+        <Stat icon={<Layers size={14} />} value={String(sets)} label="Set" />
+        {min ? <Stat icon={<Clock size={14} />} value={`${min}`} label="Min" /> : null}
+      </div>
+      {n > 0 && (
         <ol className="space-y-1" aria-label="Övningar i dagens pass">
-          {template.exercises.map((te) => {
+          {template.exercises.map((te, i) => {
             const ex = exercises?.get(te.exerciseId);
             const reason = ready.get(te.exerciseId);
             const inSuperset = !!te.supersetGroup;
             const reps = te.repMin === te.repMax ? `${te.repMin}` : `${te.repMin}–${te.repMax}`;
             const unit = ex?.measure === 'time' ? ' s' : '';
             return (
-              <li key={te.id} className={cx('flex min-h-10 items-center gap-2', inSuperset && 'border-l-2 border-accent pl-3')}>
-                <span className="min-w-0 flex-1 truncate">{ex?.name ?? 'Okänd övning'}</span>
+              <li key={te.id} className="flex min-h-11 items-center gap-3">
+                <span
+                  aria-hidden
+                  className={cx(
+                    'tabular flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold',
+                    inSuperset ? 'bg-accent/15 text-accent' : 'bg-surface-2 text-muted',
+                  )}
+                >
+                  {i + 1}
+                </span>
+                <span className="min-w-0 flex-1 truncate font-semibold">{ex?.name ?? 'Okänd övning'}</span>
                 {reason && (
                   <span
-                    className="shrink-0 rounded-full bg-good/20 px-2 py-0.5 text-sm font-bold text-good"
+                    className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-accent px-2 py-0.5 text-xs font-extrabold text-accent-fg"
                     title={reason}
                     aria-label={`Redo att höja: ${reason}`}
                   >
-                    ↑
+                    <TrendingUp aria-hidden size={12} strokeWidth={3} /> Höj
                   </span>
                 )}
-                <span className="tabular shrink-0 text-sm text-muted">
+                <span className="tabular shrink-0 text-sm font-medium text-muted">
                   {te.sets} × {reps}
                   {unit}
                 </span>
@@ -320,13 +376,13 @@ function TodayCard({
         </ol>
       )}
       {ready.size > 0 && (
-        <p className="text-sm text-good">
-          ↑ {ready.size} {ready.size === 1 ? 'övning är' : 'övningar är'} redo att höja
+        <p className="flex items-center gap-2 rounded-2xl bg-accent/10 px-3 py-2 text-sm font-semibold text-accent">
+          <TrendingUp aria-hidden size={16} /> {ready.size} {ready.size === 1 ? 'övning är' : 'övningar är'} redo att höja
         </p>
       )}
       <Button variant="primary" size="xl" className="w-full" onClick={onStart} disabled={starting}>
-        {starting ? 'Startar…' : 'Starta passet'}
+        <Play aria-hidden size={24} fill="currentColor" /> {starting ? 'Startar…' : 'Starta passet'}
       </Button>
-    </Card>
+    </section>
   );
 }

@@ -1,20 +1,24 @@
 @import 'tailwindcss';
+@import '@fontsource-variable/inter';
 
 /* Dark, high-contrast theme. Use these semantic colors in components:
    bg-bg / bg-surface / bg-surface-2, text-fg / text-muted, accent (actions), good/warn/bad. */
 @theme {
-  --color-bg: #0a0a0a;
-  --color-surface: #161616;
-  --color-surface-2: #222222;
-  --color-border: #333333;
-  --color-fg: #f5f5f5;
-  --color-muted: #a3a3a3;
-  --color-accent: #3b82f6;
-  --color-accent-fg: #ffffff;
-  --color-good: #22c55e;
-  --color-warn: #f59e0b;
-  --color-bad: #ef4444;
-  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* Near-black canvas with layered, slightly cool surfaces. */
+  --color-bg: #08090b;
+  --color-surface: #121418;
+  --color-surface-2: #1b1e24;
+  --color-border: #272b33;
+  --color-fg: #f5f6f8;
+  --color-muted: #959cab;
+  /* "Volt" accent – high contrast on black, readable in a bright gym. */
+  --color-accent: #d4ff3a;
+  --color-accent-fg: #0b0e02;
+  --color-good: #3ddc97;
+  --color-warn: #ffb547;
+  --color-bad: #ff5c5c;
+  --font-sans: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --radius-card: 1.5rem;
 }
 
 html {
@@ -27,6 +31,9 @@ html {
 
 body {
   @apply bg-bg text-fg antialiased;
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
+  background-image: radial-gradient(120% 60% at 50% -10%, rgb(212 255 58 / 0.07), transparent 60%);
+  background-attachment: fixed;
   overscroll-behavior-y: none;
 }
 
@@ -50,10 +57,60 @@ body {
   outline-offset: 2px;
 }
 
+/* Full-screen "vilan är slut" signal: volt background pulsing between bright and dim. */
 @keyframes rest-flash {
-  0%, 100% { background-color: var(--color-bg); }
-  50% { background-color: var(--color-good); }
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(0.55); }
 }
 .animate-rest-flash {
-  animation: rest-flash 0.6s ease-in-out 4;
+  background-color: var(--color-accent) !important;
+  color: var(--color-accent-fg);
+  animation: rest-flash 0.5s ease-in-out 6;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.02em;
+}
+
+/* Glassy panel used for sticky header and floating tab bar. */
+.glass {
+  background-color: rgb(18 20 24 / 0.72);
+  -webkit-backdrop-filter: saturate(160%) blur(18px);
+  backdrop-filter: saturate(160%) blur(18px);
+}
+
+/* Card with a soft top highlight. */
+.card {
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.035), rgb(255 255 255 / 0) 40%), var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 12px 32px -18px rgb(0 0 0 / 0.8);
+}
+
+/* Hero card with accent glow. */
+.card-hero {
+  background:
+    radial-gradient(90% 120% at 100% 0%, rgb(212 255 58 / 0.16), transparent 55%),
+    linear-gradient(180deg, rgb(255 255 255 / 0.04), rgb(255 255 255 / 0) 50%), var(--color-surface);
+  border: 1px solid rgb(212 255 58 / 0.22);
+  border-radius: var(--radius-card);
+}
+
+.press {
+  transition: transform 120ms ease, filter 120ms ease, background-color 120ms ease;
+}
+.press:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .press:active:not(:disabled) {
+    transform: none;
+  }
+  .animate-rest-flash {
+    animation: none;
+    background-color: var(--color-good);
+  }
 }

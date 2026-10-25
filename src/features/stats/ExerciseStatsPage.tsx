@@ -136,7 +136,7 @@ export default function ExerciseStatsPage() {
                     type="monotone"
                     dataKey="value"
                     stroke={CHART.series}
-                    strokeWidth={2}
+                    strokeWidth={3}
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     dot={data.length <= 30 ? { r: 4, fill: CHART.series, stroke: CHART.surface, strokeWidth: 2 } : false}

@@ -79,7 +79,7 @@ export default function StatsPage() {
                   <XAxis dataKey="label" tick={axisTick} tickLine={false} axisLine={{ stroke: CHART.grid }} interval="preserveStartEnd" tickFormatter={(l: string) => l.replace('v. ', '')} />
                   <YAxis allowDecimals={false} tick={axisTick} tickLine={false} axisLine={false} width={48} />
                   <Tooltip {...tooltipProps} formatter={(v) => [`${v} pass`, '']} separator="" />
-                  <Bar dataKey="count" fill={CHART.series} radius={[4, 4, 0, 0]} maxBarSize={24} isAnimationActive={false} />
+                  <Bar dataKey="count" fill={CHART.series} radius={[8, 8, 8, 8]} maxBarSize={24} isAnimationActive={false} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

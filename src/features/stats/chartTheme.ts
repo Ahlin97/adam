@@ -2,20 +2,20 @@
 import type { CSSProperties } from 'react';
 
 export const CHART = {
-  series: '#3b82f6', // accent
-  grid: '#333333',
-  axis: '#a3a3a3',
-  surface: '#161616',
-  fg: '#f5f5f5',
+  series: '#d4ff3a', // accent
+  grid: '#272b33',
+  axis: '#959cab',
+  surface: '#121418',
+  fg: '#f5f6f8',
 };
 
 export const axisTick = { fill: CHART.axis, fontSize: 12 };
 
 export const tooltipProps = {
   contentStyle: {
-    background: '#222222',
+    background: '#1b1e24',
     border: `1px solid ${CHART.grid}`,
-    borderRadius: 12,
+    borderRadius: 14,
     color: CHART.fg,
   } satisfies CSSProperties,
   labelStyle: { color: CHART.axis } satisfies CSSProperties,
