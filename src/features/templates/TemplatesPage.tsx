@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { estimateMinutes } from '@/engine';
-import { useActiveSession, useExerciseMap, usePrograms, useSettings, useTemplates } from '@/db/hooks';
+import { useActiveSession, useCompletedSessions, useExerciseMap, usePrograms, useSettings, useTemplates } from '@/db/hooks';
+import { formatDate } from '@/lib/format';
 import { Button, Card, EmptyState, Page } from '@/ui';
 import { safe } from '@/features/library/safe';
 import { startSession } from '@/features/workout/start';
@@ -14,6 +15,11 @@ export default function TemplatesPage() {
   const programs = usePrograms();
   const settings = useSettings();
   const active = useActiveSession();
+  const completed = useCompletedSessions();
+  // Last time each template was run (completed is newest first); used ones are listed first.
+  const lastRun = new Map<string, string>();
+  for (const c of completed ?? []) if (c.templateId && !lastRun.has(c.templateId)) lastRun.set(c.templateId, c.startedAt);
+  const ordered = templates && [...templates].sort((a, b) => (lastRun.get(b.id) ?? '').localeCompare(lastRun.get(a.id) ?? '') || a.name.localeCompare(b.name, 'sv'));
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,7 +92,7 @@ export default function TemplatesPage() {
             <EmptyState title="Inga pass ännu">Skapa ett pass, t.ex. "Push" eller "Helkropp A".</EmptyState>
           )}
           <ul className="space-y-3">
-            {templates?.map((t) => {
+            {ordered?.map((t) => {
               const minutes = safe(() => estimateMinutes(t), 0);
               const names = t.exercises
                 .map((e) => exMap?.get(e.exerciseId)?.name)
@@ -100,6 +106,7 @@ export default function TemplatesPage() {
                       <span className="block truncate font-semibold">{t.name || 'Namnlöst pass'}</span>
                       <span className="block text-sm text-muted">
                         {t.exercises.length} övningar{minutes ? ` · ca ${minutes} min` : ''}
+                        {lastRun.has(t.id) && ` · senast ${formatDate(lastRun.get(t.id)!)}`}
                       </span>
                       {names && <span className="block truncate text-xs text-muted">{names}</span>}
                     </Link>
