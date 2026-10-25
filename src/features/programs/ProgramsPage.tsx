@@ -4,6 +4,7 @@ import { usePrograms, useSettings, useTemplates } from '@/db/hooks';
 import { saveSettings } from '@/db/repo';
 import { WEEKDAY_SHORT } from '@/lib/labels';
 import { Button, Card, EmptyState, Page, cx } from '@/ui';
+import { CalendarDays, ChevronRight } from 'lucide-react';
 
 export function programSummary(p: Program, templates: Map<string, WorkoutTemplate>): string {
   const name = (id: string) => templates.get(id)?.name ?? '?';
@@ -21,18 +22,28 @@ export default function ProgramsPage() {
   const settings = useSettings();
   const navigate = useNavigate();
   const tplMap = new Map((templates ?? []).map((t) => [t.id, t]));
-  const sorted = programs && [...programs].sort((a, b) => a.name.localeCompare(b.name, 'sv'));
+  // Active program first, then by name.
+  const isActiveId = (id: string) => Number(id === settings.activeProgramId);
+  const sorted = programs && [...programs].sort((a, b) => isActiveId(b.id) - isActiveId(a.id) || a.name.localeCompare(b.name, 'sv'));
 
   return (
     <Page
       title="Program"
       back="/templates"
       actions={
-        <Button variant="primary" onClick={() => navigate('/programs/new')}>
-          + Nytt program
-        </Button>
+        <Button onClick={() => navigate('/programs/new')}>+ Eget program</Button>
       }
     >
+      <Link to="/programs/plan" className="card-hero press mb-4 flex min-h-20 items-center gap-4 p-4 active:opacity-90">
+        <span aria-hidden className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-accent-fg">
+          <CalendarDays size={24} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-lg font-extrabold">Planera veckan</span>
+          <span className="block text-sm text-muted">Välj dagar och upplägg – klart på en minut.</span>
+        </span>
+        <ChevronRight aria-hidden size={22} className="text-muted" />
+      </Link>
       <p className="mb-4 text-sm text-muted">Det aktiva programmet styr vilket pass som visas som dagens pass på startsidan.</p>
       {sorted === undefined && <p className="text-muted">Laddar…</p>}
       {sorted?.length === 0 && <EmptyState title="Inga program ännu">Skapa ett program med veckodagar eller rotation.</EmptyState>}

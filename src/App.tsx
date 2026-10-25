@@ -11,6 +11,7 @@ import TemplatesPage from './features/templates/TemplatesPage';
 import TemplateEditPage from './features/templates/TemplateEditPage';
 import ProgramsPage from './features/programs/ProgramsPage';
 import ProgramEditPage from './features/programs/ProgramEditPage';
+import PlanWeekPage from './features/programs/PlanWeekPage';
 import WorkoutPage from './features/workout/WorkoutPage';
 import SummaryPage from './features/workout/SummaryPage';
 import HistoryPage from './features/history/HistoryPage';
@@ -41,6 +42,7 @@ function Gate() {
         <Route path="templates" element={<TemplatesPage />} />
         <Route path="templates/:id" element={<TemplateEditPage />} />
         <Route path="programs" element={<ProgramsPage />} />
+        <Route path="programs/plan" element={<PlanWeekPage />} />
         <Route path="programs/:id" element={<ProgramEditPage />} />
         <Route path="workout" element={<WorkoutPage />} />
         <Route path="workout/summary/:id" element={<SummaryPage />} />

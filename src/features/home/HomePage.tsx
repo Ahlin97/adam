@@ -203,7 +203,9 @@ export default function HomePage() {
                 <Plus aria-hidden size={20} /> Starta tomt pass
               </Button>
             )}
-            <QuickLink to="/programs" icon={<Layers size={20} />}>{program ? 'Byt program' : 'Välj program'}</QuickLink>
+            <QuickLink to={program ? '/programs' : '/programs/plan'} icon={<Layers size={20} />}>
+              {program ? 'Byt program' : 'Planera veckan'}
+            </QuickLink>
             <QuickLink to="/exercises" icon={<BookOpen size={20} />}>Övningar</QuickLink>
           </div>
         </section>
@@ -361,7 +363,7 @@ function QuickStartCard({
       <p className="flex items-start gap-2 text-sm text-muted">
         <CalendarDays aria-hidden size={16} className="mt-0.5 shrink-0" />
         <span>
-          Tips: <Link className="font-semibold text-accent" to="/programs">välj ett program</Link> så visas dagens pass här automatiskt.
+          Tips: <Link className="font-semibold text-accent" to="/programs/plan">planera din vecka</Link> så visas dagens pass här automatiskt.
         </span>
       </p>
     </section>
