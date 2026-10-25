@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useAllSets, useCompletedSessions, useExerciseMap, useSettings } from '@/db/hooks';
 import type { Unit } from '@/engine';
@@ -53,7 +53,9 @@ export default function ExerciseStatsPage() {
 
   const exercise = exMap?.get(id);
   const title = exercise?.name ?? 'Övning';
-  if (!exMap || !sets || !sessions) return <Page title={title} back="/stats">{null}</Page>;
+  // Opened from a running pass → back returns to it.
+  const back = (useLocation().state as { back?: string } | null)?.back ?? '/stats';
+  if (!exMap || !sets || !sessions) return <Page title={title} back={back}>{null}</Page>;
 
   const isTime = exercise?.measure === 'time';
   const hasWeight = series.some((p) => p.heaviest > 0);
@@ -64,7 +66,7 @@ export default function ExerciseStatsPage() {
 
   if (!series.length)
     return (
-      <Page title={title} back="/stats">
+      <Page title={title} back={back}>
         <EmptyState title="Ingen historik">Du har inte loggat {exercise?.name ?? 'övningen'} i något avslutat pass än.</EmptyState>
       </Page>
     );
@@ -74,7 +76,7 @@ export default function ExerciseStatsPage() {
   const summary = `${metric.label}: från ${metric.format(first, unit)} (${formatDate(data[0].date)}) till ${metric.format(last, unit)} (${formatDate(data[data.length - 1].date)}), ${data.length} pass.`;
 
   return (
-    <Page title={title} back="/stats" className="space-y-6">
+    <Page title={title} back={back} className="space-y-6">
       <section aria-labelledby="chart-h">
         <Card>
           <h2 id="chart-h" className="sr-only">Utveckling över tid</h2>

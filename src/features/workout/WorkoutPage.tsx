@@ -744,6 +744,7 @@ function ExerciseMenu({
   onPlates: (kg?: number) => void;
   suggestedKg?: number;
 }) {
+  const navigate = useNavigate();
   const [notes, setNotes] = useState(se.notes);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const idx = session.exercises.findIndex((e) => e.id === se.id);
@@ -797,6 +798,16 @@ function ExerciseMenu({
           </Button>
           <Button onClick={onReplace}>⇄ Byt ut</Button>
           <Button onClick={() => onPlates(suggestedKg)}>Skivkalkylator</Button>
+          {/* The pass keeps running; the back button on the stats page returns here. */}
+          <Button
+            className="col-span-2"
+            onClick={() => {
+              close();
+              navigate(`/stats/exercise/${se.exerciseId}`, { state: { back: '/workout' } });
+            }}
+          >
+            <TrendingUp aria-hidden size={16} /> Historik och personbästan
+          </Button>
         </div>
 
         {confirmRemove ? (
