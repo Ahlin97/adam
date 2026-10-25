@@ -118,6 +118,35 @@ export async function getActiveSession(): Promise<WorkoutSession | undefined> {
   return rows[0] ? strip(rows[0]) : undefined;
 }
 
+/**
+ * Two devices that start a pass offline can both end up with an active session after syncing.
+ * Keep the one with the latest activity (last logged set, else start time; id breaks ties so every
+ * device picks the same one). The others are closed as completed passes if they have sets, so no
+ * logged data is lost, and removed if they are empty. Returns how many sessions were resolved.
+ */
+export async function resolveDuplicateActiveSessions(): Promise<number> {
+  const active = (await db.sessions.where('status').equals('active').toArray()).filter((r) => !r._deleted);
+  if (active.length < 2) return 0;
+  const withSets = await Promise.all(active.map(async (s) => ({ s, sets: await getSessionSets(s.id) })));
+  const lastActivity = ({ s, sets }: (typeof withSets)[number]) =>
+    sets.reduce((m, x) => (x.completedAt > m ? x.completedAt : m), s.startedAt);
+  withSets.sort((a, b) => lastActivity(b).localeCompare(lastActivity(a)) || b.s.id.localeCompare(a.s.id));
+  for (const other of withSets.slice(1)) {
+    if (!other.sets.length) {
+      await remove('sessions', other.s.id);
+      continue;
+    }
+    const used = new Set(other.sets.map((x) => x.sessionExerciseId));
+    await put('sessions', {
+      ...strip(other.s),
+      status: 'completed',
+      endedAt: lastActivity(other),
+      exercises: other.s.exercises.filter((e) => used.has(e.id)),
+    });
+  }
+  return withSets.length - 1;
+}
+
 export async function getSessionSets(sessionId: string): Promise<SetEntry[]> {
   const rows = (await db.sets.where('sessionId').equals(sessionId).toArray()).filter((r) => !r._deleted);
   return rows.map((r) => strip(r)).sort((a, b) => a.order - b.order || a.completedAt.localeCompare(b.completedAt));

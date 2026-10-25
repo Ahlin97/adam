@@ -298,7 +298,19 @@ export default function TemplateEditPage() {
   }, []);
 
   // Flush pending autosave on unmount.
-  useEffect(() => () => void flush(), [flush]);
+  // Leaving a template created here without a name or exercises removes it instead of keeping an empty row.
+  const createdHere = useRef(id === 'new');
+  useEffect(
+    () => () => {
+      const d = draftRef.current;
+      if (createdHere.current && d && !d.name.trim() && d.exercises.length === 0) {
+        window.clearTimeout(timer.current);
+        pending.current = null;
+        void remove('templates', d.id);
+      } else void flush();
+    },
+    [flush],
+  );
 
   const update = (fn: (t: WorkoutTemplate) => WorkoutTemplate) => {
     const current = pending.current ?? draftRef.current;

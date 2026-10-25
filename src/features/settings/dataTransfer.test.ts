@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto';
 import { describe, expect, it } from 'vitest';
+import { BUILTIN_EXERCISES } from '@/data/exercises';
 import type { Exercise, SetEntry, WorkoutSession } from '@/engine/types.ts';
 import {
   buildExportBundle,
@@ -111,6 +112,15 @@ describe('Strong import', () => {
     const b = planCsvImport(parseImportCsv(strong), existing);
     expect(a.sessions.map((s) => s.id)).toEqual(b.sessions.map((s) => s.id));
     expect(a.sets.map((s) => s.id)).toEqual(b.sets.map((s) => s.id));
+  });
+
+  it('maps English Strong names to built-in exercises', () => {
+    const plan = planCsvImport(parseImportCsv(strong, 'kg'), BUILTIN_EXERCISES);
+    const ids = new Set(plan.sets.map((s) => s.exerciseId));
+    expect(ids.has('bi-bench-press')).toBe(true);
+    expect(ids.has('bi-plank')).toBe(true);
+    // Only "Knaboj" is unknown here: the Swedish built-in is "Knäböj", which matches diacritic-insensitively.
+    expect(plan.newExerciseNames).toEqual([]);
   });
 
   it('converts lb', () => {

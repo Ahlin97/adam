@@ -4,6 +4,7 @@
 // Pure parsing/planning functions are separated from the few DB/DOM functions at the bottom.
 import type { Exercise, Program, SessionExercise, SetEntry, SetType, Settings, Unit, WorkoutSession, WorkoutTemplate } from '@/engine';
 import { all, getSettings, put, putMany } from '@/db/repo';
+import { EXERCISE_ALIASES } from '@/data/exerciseAliases';
 
 // ===================================================================== JSON
 
@@ -463,6 +464,12 @@ export function planCsvImport(
   const byId = new Map(existing.map((e) => [e.id, e]));
   const byName = new Map<string, Exercise>();
   for (const e of existing) if (!byName.has(normalizeName(e.name))) byName.set(normalizeName(e.name), e);
+  // English Strong/Hevy names → built-in exercises (only when the built-in still exists).
+  for (const [id, names] of Object.entries(EXERCISE_ALIASES)) {
+    const e = byId.get(id);
+    if (!e) continue;
+    for (const n of names) if (!byName.has(normalizeName(n))) byName.set(normalizeName(n), e);
+  }
 
   const created = new Map<string, Exercise>();
   const resolveExercise = (row: ImportRow, timeBased: boolean): Exercise => {

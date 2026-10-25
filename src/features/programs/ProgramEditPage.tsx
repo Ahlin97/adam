@@ -19,6 +19,27 @@ function blankProgram(): Program {
   };
 }
 
+/**
+ * Change schedule mode, carrying the passes over when the target mode is empty so a program never
+ * silently turns into "rest day every day": rotation → weekdays fills the reminder days (Mon/Wed/Fri
+ * by default) in turn; weekdays → rotation uses the weekday passes in week order.
+ */
+export function switchMode(p: Program, mode: Program['mode']): Program {
+  if (mode === 'weekdays') {
+    if (p.weekdays.some(Boolean) || p.rotation.length === 0) return { ...p, mode };
+    const days = p.reminderDays.some(Boolean) ? p.reminderDays.flatMap((on, i) => (on ? [i] : [])) : [0, 2, 4];
+    const weekdays: (string | null)[] = [null, null, null, null, null, null, null];
+    days.forEach((d, k) => (weekdays[d] = p.rotation[k % p.rotation.length]));
+    return { ...p, mode, weekdays };
+  }
+  if (p.rotation.length || !p.weekdays.some(Boolean)) return { ...p, mode };
+  return { ...p, mode, rotation: p.weekdays.filter((t): t is string => !!t) };
+}
+
+export function isBlankProgram(p: Program): boolean {
+  return !p.name.trim() && p.rotation.length === 0 && p.weekdays.every((t) => !t);
+}
+
 export default function ProgramEditPage() {
   const { id = 'new' } = useParams();
   const navigate = useNavigate();
@@ -53,7 +74,19 @@ export default function ProgramEditPage() {
     await put('programs', p);
     setSaved(true);
   }, []);
-  useEffect(() => () => void flush(), [flush]);
+  // Leaving a program created here without a name or any pass removes it instead of keeping an empty row.
+  const createdHere = useRef(id === 'new');
+  useEffect(
+    () => () => {
+      const d = draftRef.current;
+      if (createdHere.current && d && isBlankProgram(d)) {
+        window.clearTimeout(timer.current);
+        pending.current = null;
+        void remove('programs', d.id);
+      } else void flush();
+    },
+    [flush],
+  );
 
   const update = (fn: (p: Program) => Program) => {
     const current = draftRef.current;
@@ -140,10 +173,10 @@ export default function ProgramEditPage() {
           <fieldset>
             <legend className="mb-1 text-sm text-muted">Schema</legend>
             <div className="grid grid-cols-2 gap-2">
-              <Chip active={draft.mode === 'weekdays'} onClick={() => update((p) => ({ ...p, mode: 'weekdays' }))}>
+              <Chip active={draft.mode === 'weekdays'} onClick={() => draft.mode !== 'weekdays' && update((p) => switchMode(p, 'weekdays'))}>
                 Veckodagar
               </Chip>
-              <Chip active={draft.mode === 'rotation'} onClick={() => update((p) => ({ ...p, mode: 'rotation' }))}>
+              <Chip active={draft.mode === 'rotation'} onClick={() => draft.mode !== 'rotation' && update((p) => switchMode(p, 'rotation'))}>
                 Rotation
               </Chip>
             </div>

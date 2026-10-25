@@ -99,6 +99,36 @@ describe('sync', () => {
     expect(table('sets').get('x')?.data.reps).toBe(12);
   });
 
+  it('settles two active passes from different devices without losing sets', async () => {
+    const session = (id: string, startedAt: string) => ({
+      id,
+      name: id,
+      notes: '',
+      status: 'active' as const,
+      startedAt,
+      endedAt: null,
+      templateId: null,
+      programId: null,
+      exercises: [{ id: `${id}-se`, exerciseId: 'bi-bench', sets: 3, repMin: 8, repMax: 12, targetRpe: null, restSec: 120, warmupSets: 0, rule: 'double' as const, notes: '', supersetGroup: null, suggestion: null }],
+    });
+    // This device: an older pass with one set. Other device (on the server): a newer pass, and an empty one.
+    await repo.put('sessions', session('phone', '2026-10-25T10:00:00Z'));
+    await repo.put('sets', { ...set('p1', 8), sessionId: 'phone', sessionExerciseId: 'phone-se', completedAt: '2026-10-25T10:05:00Z' });
+    table('sessions').set('web', { user_id: 'user-1', id: 'web', data: session('web', '2026-10-25T10:02:00Z'), deleted: false, seq: ++seq });
+    table('sets').set('w1', { user_id: 'user-1', id: 'w1', data: { ...set('w1', 9), sessionId: 'web', sessionExerciseId: 'web-se', completedAt: '2026-10-25T10:10:00Z' }, deleted: false, seq: ++seq });
+    table('sessions').set('empty', { user_id: 'user-1', id: 'empty', data: session('empty', '2026-10-25T09:00:00Z'), deleted: false, seq: ++seq });
+
+    await syncNow();
+
+    expect((await repo.getActiveSession())?.id).toBe('web');
+    expect(await repo.get('sessions', 'phone')).toMatchObject({ status: 'completed', endedAt: '2026-10-25T10:05:00Z' });
+    expect(await repo.get('sessions', 'empty')).toBeUndefined();
+    expect(await repo.get('sets', 'p1')).toBeDefined();
+    // The resolution itself is pushed so other devices converge.
+    expect(table('sessions').get('phone')?.data.status).toBe('completed');
+    expect(table('sessions').get('empty')?.deleted).toBe(true);
+  });
+
   it('syncs soft deletes', async () => {
     await repo.put('sets', set('d', 6));
     await syncNow();
