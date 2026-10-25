@@ -18,6 +18,17 @@ export const WARMUP_REPS = 8;
 export const WARMUP_FACTOR = 0.5;
 
 /**
+ * Warm-up ramp as [share of working weight, reps] for set `index` of `count` warm-up sets:
+ * 1 set: 50 % × 8 · 2 sets: 50 % × 8, 75 % × 5 · 3+ sets: 40 % → 80 %, reps 8 → 3.
+ */
+export function warmupStep(index: number, count: number): [number, number] {
+  if (count <= 1) return [WARMUP_FACTOR, WARMUP_REPS];
+  if (count === 2) return index === 0 ? [WARMUP_FACTOR, WARMUP_REPS] : [0.75, 5];
+  const t = Math.min(index, count - 1) / (count - 1);
+  return [0.4 + 0.4 * t, Math.round(WARMUP_REPS - 5 * t)];
+}
+
+/**
  * Build a new active session from a template, attaching a suggestion per exercise.
  * `histories` maps exerciseId → history (newest first). Unknown exercises are skipped.
  */
@@ -147,7 +158,16 @@ export function nextSetInSession(
 function describe(p: Progress, opts?: { exercises?: Map<string, Exercise>; profile?: EquipmentProfile }): NextSet {
   const { se } = p;
   const sug = se.suggestion;
-  const workingWeight = p.lastWorking ? p.lastWorking.weight : (sug?.weight ?? null);
+  const ex = opts?.exercises?.get(se.exerciseId);
+  const round = (kg: number) => (ex && opts?.profile ? roundToAvailable(kg, ex, opts.profile) : Math.round(kg / 2.5) * 2.5);
+  const warmupCount = Math.max(0, se.warmupSets);
+  // First time with no suggestion: estimate the working weight from the last warm-up and its ramp share,
+  // so the first working set does not start at warm-up weight.
+  const estimated =
+    p.lastWarmup && p.lastWarmup.weight > 0
+      ? round(p.lastWarmup.weight / warmupStep(p.warmupsDone - 1, warmupCount)[0])
+      : null;
+  const workingWeight = p.lastWorking ? p.lastWorking.weight : (sug?.weight ?? estimated);
   const workingReps = p.lastWorking ? p.lastWorking.reps : (sug?.reps ?? se.repMin);
   const base = {
     sessionExerciseId: se.id,
@@ -156,18 +176,9 @@ function describe(p: Progress, opts?: { exercises?: Map<string, Exercise>; profi
     restSec: se.restSec,
   };
   if (p.warmupsNeeded > 0) {
-    let weight: number | null;
-    let reps = WARMUP_REPS;
-    if (p.lastWarmup) {
-      weight = p.lastWarmup.weight;
-      reps = p.lastWarmup.reps;
-    } else if (workingWeight === null) {
-      weight = null;
-    } else {
-      const ex = opts?.exercises?.get(se.exerciseId);
-      const raw = workingWeight * WARMUP_FACTOR;
-      weight = ex && opts?.profile ? roundToAvailable(raw, ex, opts.profile) : Math.round(raw / 2.5) * 2.5;
-    }
+    const [share, reps] = warmupStep(p.warmupsDone, warmupCount);
+    // Known working weight → follow the ramp. Otherwise (first time) keep whatever was used last.
+    const weight = workingWeight !== null ? round(workingWeight * share) : (p.lastWarmup?.weight ?? null);
     return { ...base, setNumber: p.warmupsDone + 1, type: 'warmup', reps, weight };
   }
   return {

@@ -123,8 +123,10 @@ export async function addExerciseToSession(sessionId: string, exercise: Exercise
 }
 
 /**
- * Swap an exercise for another one keeping the prescription. If sets were already logged
- * for the old exercise, it is kept (trimmed to the logged sets) and the new one is inserted after it.
+ * Swap an exercise for another one keeping the prescription. Once anything was logged for the old
+ * exercise you are warm, so the new one gets no warm-up sets. If only warm-ups were logged they are
+ * dropped together with the old exercise (warm-ups never count in volume or records); if working
+ * sets were logged the old exercise is kept (trimmed to those sets) and the new one inserted after it.
  * Returns the new SessionExercise id.
  */
 export async function replaceExercise(sessionId: string, sessionExerciseId: string, exercise: Exercise): Promise<string | null> {
@@ -132,11 +134,13 @@ export async function replaceExercise(sessionId: string, sessionExerciseId: stri
   const old = session?.exercises.find((e) => e.id === sessionExerciseId);
   if (!session || !old) return null;
   const logged = (await getSessionSets(sessionId)).filter((s) => s.sessionExerciseId === sessionExerciseId);
-  const se = await makeSessionExercise(sessionId, exercise, old);
+  const onlyWarmups = logged.length > 0 && logged.every((x) => x.type === 'warmup');
+  const se = await makeSessionExercise(sessionId, exercise, logged.length ? { ...old, warmupSets: 0 } : old);
+  if (onlyWarmups) for (const x of logged) await remove('sets', x.id);
   await mutateSession(sessionId, (s) => {
     const idx = s.exercises.findIndex((e) => e.id === sessionExerciseId);
     if (idx < 0) return;
-    if (logged.length === 0) {
+    if (logged.length === 0 || onlyWarmups) {
       s.exercises[idx] = se;
     } else {
       const prev = s.exercises[idx];

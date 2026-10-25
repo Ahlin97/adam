@@ -8,7 +8,7 @@ vi.mock('@/lib/supabase', () => ({ supabase: null, functionsUrl: null }));
 const { db } = await import('@/db/db');
 const { ensureSeeded } = await import('@/data/seed');
 const { getActiveSession, getSessionSets, getExerciseHistory } = await import('@/db/repo');
-const { startSession, logSet, finishSession } = await import('./start');
+const { startSession, logSet, finishSession, replaceExercise } = await import('./start');
 const { nextSetInSession } = await import('@/engine');
 
 async function doSession(templateId: string, weightFor: (exerciseId: string) => number, repsFor = () => 5) {
@@ -65,5 +65,31 @@ describe('workout flow', () => {
     const se = (await getActiveSession())!.exercises.find((e) => e.exerciseId === squat)!;
     expect(se.suggestion?.weight).toBe(100);
     expect(se.suggestion?.kind).toBe('repeat');
+  });
+
+  it('swapping after warm-ups replaces the exercise and skips a second warm-up', async () => {
+    const id = await startSession({ templateId: 'st-5x5-b', programId: null });
+    let session = (await getActiveSession())!;
+    const press = session.exercises[1];
+    const log = (seId: string, exerciseId: string, type: 'warmup' | 'working') =>
+      logSet({ sessionId: id, sessionExerciseId: seId, exerciseId, type, reps: 5, weight: 20, durationSec: null, rpe: null });
+    await log(press.id, press.exerciseId, 'warmup');
+    await log(press.id, press.exerciseId, 'warmup');
+
+    const db_press = (await db.exercises.get('bi-db-shoulder-press'))!;
+    const newId = (await replaceExercise(id, press.id, db_press))!;
+    session = (await getActiveSession())!;
+    expect(session.exercises.map((e) => e.exerciseId)).toEqual(['bi-squat', 'bi-db-shoulder-press', 'bi-deadlift']);
+    expect(session.exercises[1]).toMatchObject({ id: newId, warmupSets: 0, sets: press.sets });
+    expect((await getSessionSets(id)).filter((s) => s.sessionExerciseId === press.id)).toHaveLength(0);
+
+    // With a working set logged the old exercise stays (trimmed) and the new one follows it.
+    const squat = session.exercises[0];
+    await log(squat.id, squat.exerciseId, 'working');
+    await replaceExercise(id, squat.id, (await db.exercises.get('bi-front-squat'))!);
+    session = (await getActiveSession())!;
+    expect(session.exercises.map((e) => e.exerciseId)).toEqual(['bi-squat', 'bi-front-squat', 'bi-db-shoulder-press', 'bi-deadlift']);
+    expect(session.exercises[0]).toMatchObject({ sets: 1, warmupSets: 0 });
+    expect(session.exercises[1].warmupSets).toBe(0);
   });
 });

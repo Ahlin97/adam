@@ -220,6 +220,30 @@ describe('nextSetInSession', () => {
     sets = [...sets, logged('a', 'failure', 77.5, 7)];
     expect(nextSetInSession(s, sets)).toMatchObject({ sessionExerciseId: 'b', setNumber: 1, weight: 80 });
   });
+  it('ramps warm-ups up towards the working weight', () => {
+    const s = session([se('a', { warmupSets: 2 })]);
+    expect(nextSetInSession(s, [])).toMatchObject({ type: 'warmup', weight: 40, reps: 8 });
+    expect(nextSetInSession(s, [logged('a', 'warmup', 40, 8)])).toMatchObject({ type: 'warmup', setNumber: 2, weight: 60, reps: 5 });
+    const three = session([se('b', { warmupSets: 3, suggestion: { ...se('b').suggestion!, weight: 100 } })]);
+    const steps: string[] = [];
+    const sets: SetEntry[] = [];
+    for (let i = 0; i < 3; i++) {
+      const n = nextSetInSession(three, sets)!;
+      steps.push(`${n.reps}@${n.weight}`);
+      sets.push(logged('b', 'warmup', n.weight!, n.reps));
+    }
+    expect(steps).toEqual(['8@40', '6@60', '3@80']);
+  });
+  it('first time: estimates the working weight from the last warm-up instead of copying it', () => {
+    const first = { kind: 'first_time' as const, weight: null, reps: 5, sets: 5, reason: '', readyToIncrease: false, plateau: false };
+    const s = session([se('a', { warmupSets: 2, suggestion: first })]);
+    expect(nextSetInSession(s, [])).toMatchObject({ type: 'warmup', weight: null });
+    // Second warm-up ramps up from what was used (20 kg as 50 % → 75 % of 40 kg).
+    expect(nextSetInSession(s, [logged('a', 'warmup', 20, 8)])).toMatchObject({ type: 'warmup', weight: 30, reps: 5 });
+    // 45 kg as the 75 % step → 60 kg working.
+    const sets = [logged('a', 'warmup', 20, 8), logged('a', 'warmup', 45, 5)];
+    expect(nextSetInSession(s, sets)).toMatchObject({ type: 'working', weight: 60, reps: 5 });
+  });
   it('skips warmups once a working set is logged', () => {
     const s = session([se('a', { warmupSets: 2 })]);
     expect(nextSetInSession(s, [logged('a', 'working', 80, 8)])).toMatchObject({ type: 'working', setNumber: 4 });
