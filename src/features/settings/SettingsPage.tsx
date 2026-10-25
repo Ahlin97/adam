@@ -9,7 +9,6 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/sync/auth';
 import { pendingCount, syncNow, useSyncStatus } from '@/sync/sync';
 import { Button, Card, Chip, Field, ListLink, Page, Sheet, Stepper, cx, inputClass } from '@/ui';
-import ApiKeysSection from '@/features/watch/ApiKeysSection';
 import { fmtWeight, fromUnit, parseNum, toUnit } from '@/features/stats/units';
 import { commitImport, downloadFile, exportCsv, exportJson, planImportFromText, summarizePlan, type ImportPlan } from './dataTransfer';
 import { buildReminderIcs } from './ics';
@@ -500,13 +499,6 @@ export default function SettingsPage() {
       <DataSection />
 
       <AccountSection />
-
-      <section aria-labelledby="s-watch" className="space-y-2">
-        <h2 id="s-watch" className="px-1 text-sm font-semibold uppercase tracking-wide text-muted">
-          Apple Watch
-        </h2>
-        <ApiKeysSection />
-      </section>
     </Page>
   );
 }

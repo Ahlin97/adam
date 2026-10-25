@@ -7,7 +7,7 @@ import { useActiveSession, useCompletedSessions, useExerciseMap, usePrograms, us
 import { Button, Card, EmptyState, Page, Sheet, cx } from '@/ui';
 import { formatDate, formatLongDate } from '@/lib/format';
 import { startSession } from '@/features/workout/start';
-import { ArrowUpRight, BookOpen, CalendarDays, Clock, Dumbbell, Layers, ListChecks, Play, Plus, TrendingUp } from 'lucide-react';
+import { BookOpen, CalendarDays, Clock, Dumbbell, Layers, Play, Plus, TrendingUp } from 'lucide-react';
 
 function safe<T>(fn: () => T, fallback: T): T {
   try {
@@ -140,19 +140,12 @@ export default function HomePage() {
       {loading ? null : active ? (
         <ActiveCard session={active} onContinue={() => navigate('/workout')} />
       ) : !program ? (
-        <div className="card-hero space-y-4 p-5">
-          <span className="inline-flex size-12 items-center justify-center rounded-2xl bg-accent text-accent-fg">
-            <CalendarDays aria-hidden size={24} />
-          </span>
-          <h2 className="text-2xl font-extrabold">Välj ett program</h2>
-          <p className="text-muted">Då visar vi dagens pass och vad som står på tur – och säger till när det är dags att höja.</p>
-          <Link
-            to="/programs"
-            className="press flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-accent px-5 text-lg font-bold text-accent-fg"
-          >
-            Välj program <ArrowUpRight aria-hidden size={20} />
-          </Link>
-        </div>
+        <QuickStartCard
+          templates={templates ?? []}
+          lastTemplateId={completed?.find((s) => s.templateId && templateMap.has(s.templateId))?.templateId ?? null}
+          starting={starting}
+          onStart={(id) => void start(id, null)}
+        />
       ) : todayTemplate ? (
         <TodayCard
           template={todayTemplate}
@@ -210,10 +203,8 @@ export default function HomePage() {
                 <Plus aria-hidden size={20} /> Starta tomt pass
               </Button>
             )}
-            <QuickLink to="/templates" icon={<ListChecks size={20} />}>Passmallar</QuickLink>
-            <QuickLink to="/programs" icon={<Layers size={20} />}>Program</QuickLink>
+            <QuickLink to="/programs" icon={<Layers size={20} />}>{program ? 'Byt program' : 'Välj program'}</QuickLink>
             <QuickLink to="/exercises" icon={<BookOpen size={20} />}>Övningar</QuickLink>
-            <QuickLink to="/stats" icon={<TrendingUp size={20} />}>Statistik</QuickLink>
           </div>
         </section>
       )}
@@ -305,6 +296,75 @@ function ActiveCard({ session, onContinue }: { session: WorkoutSession; onContin
         <Play aria-hidden size={24} fill="currentColor" /> Fortsätt pass
       </Button>
     </div>
+  );
+}
+
+/** No active program: start any template with one tap, last used first. */
+function QuickStartCard({
+  templates,
+  lastTemplateId,
+  starting,
+  onStart,
+}: {
+  templates: WorkoutTemplate[];
+  lastTemplateId: string | null;
+  starting: boolean;
+  onStart: (templateId: string) => void;
+}) {
+  const [showAll, setShowAll] = useState(false);
+  const ordered = lastTemplateId
+    ? [...templates].sort((a, b) => Number(b.id === lastTemplateId) - Number(a.id === lastTemplateId))
+    : templates;
+  const visible = showAll ? ordered : ordered.slice(0, 4);
+  return (
+    <section className="card-hero space-y-4 p-5" aria-labelledby="quickstart-h">
+      <div className="space-y-1">
+        <Eyebrow>Snabbstart</Eyebrow>
+        <h2 id="quickstart-h" className="text-3xl font-extrabold">
+          Vad kör du idag?
+        </h2>
+      </div>
+      {templates.length === 0 ? (
+        <p className="text-muted">
+          Du har inga passmallar än. <Link className="text-accent underline" to="/templates">Skapa en</Link> eller starta ett tomt pass nedan.
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {visible.map((t) => (
+            <li key={t.id}>
+              <button
+                type="button"
+                disabled={starting}
+                onClick={() => onStart(t.id)}
+                className="press flex min-h-16 w-full items-center gap-3 rounded-2xl bg-black/25 px-4 py-2 text-left active:bg-surface-2"
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-lg font-bold">{t.name}</span>
+                  <span className="block text-sm text-muted">
+                    {t.id === lastTemplateId ? 'Senast körd · ' : ''}
+                    {summaryText(t)}
+                  </span>
+                </span>
+                <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent text-accent-fg">
+                  <Play size={18} fill="currentColor" />
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {ordered.length > 4 && (
+        <Button size="lg" variant="ghost" className="w-full" onClick={() => setShowAll((s) => !s)}>
+          {showAll ? 'Visa färre' : `Visa alla ${ordered.length} pass`}
+        </Button>
+      )}
+      <p className="flex items-start gap-2 text-sm text-muted">
+        <CalendarDays aria-hidden size={16} className="mt-0.5 shrink-0" />
+        <span>
+          Tips: <Link className="font-semibold text-accent" to="/programs">välj ett program</Link> så visas dagens pass här automatiskt.
+        </span>
+      </p>
+    </section>
   );
 }
 

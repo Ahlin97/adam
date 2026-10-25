@@ -40,7 +40,7 @@ export default function TemplatesPage() {
 
   return (
     <Page
-      title="Pass"
+      title="Passmallar"
       actions={
         <>
           <Link to="/programs" className={headerLink}>

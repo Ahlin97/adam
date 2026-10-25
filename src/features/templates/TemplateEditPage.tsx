@@ -472,7 +472,15 @@ export default function TemplateEditPage() {
         open={!!picker}
         onClose={() => setPicker(null)}
         onPick={onPick}
-        title={picker?.mode === 'replace' ? 'Byt övning' : 'Lägg till övning'}
+        onPickMany={
+          picker?.mode === 'add'
+            ? (list) => {
+                setExercises((prev) => [...prev, ...list.map((ex) => newTemplateExercise(ex, settings))]);
+                setPicker(null);
+              }
+            : undefined
+        }
+        title={picker?.mode === 'replace' ? 'Byt övning' : 'Lägg till övningar'}
       />
     </Page>
   );

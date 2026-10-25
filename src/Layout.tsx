@@ -6,7 +6,7 @@ import { BarChart3, CalendarDays, ChevronRight, Dumbbell, Flame, Settings2, Sun 
 
 const tabs = [
   { to: '/', label: 'Idag', Icon: Sun },
-  { to: '/templates', label: 'Pass', Icon: Dumbbell },
+  { to: '/templates', label: 'Mallar', Icon: Dumbbell },
   { to: '/history', label: 'Historik', Icon: CalendarDays },
   { to: '/stats', label: 'Statistik', Icon: BarChart3 },
   { to: '/settings', label: 'Mer', Icon: Settings2 },

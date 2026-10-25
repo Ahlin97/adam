@@ -1,6 +1,6 @@
 // The active session logger. All state that matters lives in IndexedDB (session, sets, rest timer);
 // React state only holds transient UI (which sheet is open, the set being edited before "Klar").
-import { Check, ChevronLeft, Flag, History, MoreHorizontal, Plus, SlidersHorizontal, TrendingUp } from 'lucide-react';
+import { Check, ChevronLeft, Flag, History, MoreHorizontal, Plus, SlidersHorizontal, TrendingUp, Undo2 } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -27,11 +27,11 @@ import {
   updateSet,
 } from './start';
 import { safeNextSet, safeNextSetFor, stepFor } from './safeEngine';
-import { NumberStepper, RpePicker, SetTypePicker, TypeBadge, WeightStepper } from './inputs';
+import { NumberStepper, RpePicker, SetTypePicker, TypeBadge, WeightJumps, WeightStepper } from './inputs';
 import { isBodyweight, isTime, lastTimeText, setText, weightLabel, weightText } from './setFormat';
 import { SetEditSheet } from './SetEditSheet';
 import PlateCalculator from './PlateCalculator';
-import { RestDoneOverlay, RestTimerPanel } from './RestTimer';
+import { RestDoneOverlay, RestTimerPanel } from './RestTimerPanel';
 import { clearRest, startRest, useRestTimer } from './restTimer';
 import { unlockAudio } from './alerts';
 import { useWakeLock } from './useWakeLock';
@@ -175,6 +175,13 @@ function ActiveWorkout({
   const [sessionMenu, setSessionMenu] = useState(false);
   const [finishOpen, setFinishOpen] = useState(false);
   const [announce, setAnnounce] = useState('');
+  /** The set just logged, offered for undo for a few seconds. */
+  const [undo, setUndo] = useState<{ entry: SetEntry; focus: string | null } | null>(null);
+  useEffect(() => {
+    if (!undo) return;
+    const t = setTimeout(() => setUndo(null), 8000);
+    return () => clearTimeout(t);
+  }, [undo]);
 
   // Drop focus if the focused exercise disappeared.
   const validFocus = focusId && session.exercises.some((e) => e.id === focusId) ? focusId : null;
@@ -205,6 +212,7 @@ function ActiveWorkout({
       } catch {
         /* ignore */
       }
+      setUndo({ entry, focus: validFocus });
       const newSets = [...sets, entry];
       const doneFor = (se: SessionExercise) => newSets.filter((s) => s.sessionExerciseId === se.id).length;
       const hasRemaining = (se: SessionExercise) => doneFor(se) < se.warmupSets + se.sets;
@@ -387,6 +395,29 @@ function ActiveWorkout({
 
       <div ref={bottomRef} className="pb-safe glass fixed inset-x-0 bottom-0 z-30 rounded-t-[2rem] border-t border-white/8 shadow-[0_-16px_40px_-20px_rgb(0_0_0/0.9)]">
         <div className="mx-auto max-w-xl space-y-2 p-2">
+          {undo && (
+            <div className="flex min-h-12 items-center gap-2 rounded-2xl bg-surface-2 pl-4 pr-1 text-sm" role="status">
+              <Check aria-hidden size={16} className="shrink-0 text-accent" strokeWidth={3} />
+              <span className="min-w-0 flex-1 truncate">
+                Sparat: <span className="font-semibold">{setText(undo.entry, exMap.get(undo.entry.exerciseId), settings.unit)}</span>
+              </span>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="rounded-xl font-bold text-accent"
+                onClick={async () => {
+                  const { entry, focus } = undo;
+                  setUndo(null);
+                  await deleteSet(entry.id);
+                  await clearRest();
+                  setFocusId(focus);
+                  setAnnounce('Setet är borttaget');
+                }}
+              >
+                <Undo2 aria-hidden size={16} /> Ångra
+              </Button>
+            </div>
+          )}
           {rest.phase === 'running' && rest.state && <RestTimerPanel state={rest.state} remainingMs={rest.remainingMs} />}
           {current ? (
             <CurrentSetCard
@@ -447,6 +478,20 @@ function ActiveWorkout({
             setFocusId(id);
           }
         }}
+        onPickMany={
+          picker?.kind === 'add'
+            ? async (list: Exercise[]) => {
+                setPicker(null);
+                let first: string | null = null;
+                for (const exercise of list) {
+                  const id = await addExerciseToSession(session.id, exercise);
+                  first ??= id;
+                }
+                // Keep the current focus if something is in progress; otherwise jump to the first new one.
+                if (!current) setFocusId(first);
+              }
+            : undefined
+        }
       />
 
       {menuSe && (
@@ -632,7 +677,12 @@ function CurrentSetCard({
       )}
 
       <div className="mt-3 space-y-2">
-        {showWeight && <WeightStepper label={weightLabel(exercise, settings.unit)} kg={weight} stepKg={step} unit={settings.unit} onChange={setWeight} />}
+        {showWeight && (
+          <>
+            <WeightStepper label={weightLabel(exercise, settings.unit)} kg={weight} stepKg={step} unit={settings.unit} onChange={setWeight} />
+            <WeightJumps kg={weight} stepKg={step} unit={settings.unit} onChange={setWeight} />
+          </>
+        )}
         {time ? (
           <>
             <NumberStepper label="Tid (sekunder)" value={reps} step={5} suffix="s" decimals={0} onChange={(v) => setReps(Math.round(v))} />

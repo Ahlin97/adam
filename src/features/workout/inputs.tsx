@@ -115,6 +115,35 @@ export function WeightStepper({
   );
 }
 
+const JUMPS = [-4, -2, 2, 4];
+
+/** Row of quick jumps (±2 and ±4 steps, e.g. ±5/±10 kg) for bigger weight changes in one tap. */
+export function WeightJumps({ kg, onChange, stepKg, unit }: { kg: number; onChange: (kg: number) => void; stepKg: number; unit: Unit }) {
+  const step = displayStep(stepKg, unit);
+  const shown = unit === 'kg' ? kg : toUnit(kg, unit);
+  return (
+    <div className="grid grid-cols-4 gap-2" role="group" aria-label="Snabbändra vikt">
+      {JUMPS.map((n) => {
+        const delta = n * step;
+        const next = Math.max(0, round3(shown + delta));
+        return (
+          <Button
+            key={n}
+            size="sm"
+            className="tabular min-h-11 rounded-xl text-sm font-bold"
+            disabled={shown + delta < 0}
+            aria-label={`${delta > 0 ? 'Öka' : 'Minska'} vikten med ${fmtNum(Math.abs(delta))} ${unit}`}
+            onClick={() => onChange(unit === 'kg' ? next : round3(toKg(next, unit)))}
+          >
+            {delta > 0 ? '+' : '−'}
+            {fmtNum(Math.abs(delta))}
+          </Button>
+        );
+      })}
+    </div>
+  );
+}
+
 export const SET_TYPES: SetType[] = ['warmup', 'working', 'drop', 'failure'];
 
 export function SetTypePicker({ value, onChange }: { value: SetType; onChange: (t: SetType) => void }) {
