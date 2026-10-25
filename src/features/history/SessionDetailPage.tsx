@@ -9,7 +9,8 @@ import { formatLongDate, formatSessionLength } from '@/lib/format';
 import { fmtNum, safeSummary } from '@/features/workout/safeEngine';
 import { setText, volumeText } from '@/features/workout/setFormat';
 import { SetEditSheet, type SetValues } from '@/features/workout/SetEditSheet';
-import { deleteSession, deleteSet, logSet, updateSession, updateSet } from '@/features/workout/start';
+import { deleteSession, deleteSet, logSet, startSession, updateSession, updateSet } from '@/features/workout/start';
+import { RotateCcw } from 'lucide-react';
 
 function toLocalInput(iso: string): string {
   const d = new Date(iso);
@@ -29,6 +30,7 @@ export default function SessionDetailPage() {
   const [editing, setEditing] = useState<Editing>(null);
   const [metaOpen, setMetaOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [starting, setStarting] = useState(false);
 
   if (session === undefined || !sets || !exMap) return <div className="p-6 text-center text-muted">Laddar…</div>;
   if (!session)
@@ -76,6 +78,25 @@ export default function SessionDetailPage() {
             {formatSessionLength(sum.durationSec)} · {sum.setCount} set · {volumeText(sum.volumeKg, unit)}
           </p>
         </div>
+        {session.status === 'completed' && session.exercises.length > 0 && (
+          <Button
+            variant="primary"
+            size="lg"
+            className="w-full"
+            disabled={starting}
+            onClick={async () => {
+              setStarting(true);
+              try {
+                await startSession({ templateId: null, programId: session.programId, repeatSessionId: session.id });
+                navigate('/workout');
+              } finally {
+                setStarting(false);
+              }
+            }}
+          >
+            <RotateCcw aria-hidden size={18} /> Kör igen
+          </Button>
+        )}
 
         {session.notes && (
           <Card>

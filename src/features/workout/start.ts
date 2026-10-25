@@ -1,6 +1,6 @@
 // Session lifecycle and mutations. Everything is written to IndexedDB immediately so an
 // active session survives reloads and crashes; the UI derives its state from the DB.
-import { buildSession, type Exercise, type ExerciseHistoryEntry, type Prescription, type SessionExercise, type SetEntry, type SetType, type WorkoutSession } from '@/engine';
+import { buildSession, type Exercise, type ExerciseHistoryEntry, type Prescription, type SessionExercise, type SetEntry, type SetType, type WorkoutSession, type WorkoutTemplate } from '@/engine';
 import { db } from '@/db/db';
 import { all, get, getActiveSession, getExerciseHistory, getSessionSets, getSettings, newId, put, remove } from '@/db/repo';
 import { safeSuggest } from './safeEngine';
@@ -12,7 +12,7 @@ import { clearRest } from './restTimer';
  * Returns the id of the already active session if there is one.
  * Call from a click handler: it also unlocks audio and asks for notification permission.
  */
-export async function startSession(opts: { templateId: string | null; programId: string | null }): Promise<string> {
+export async function startSession(opts: { templateId: string | null; programId: string | null; repeatSessionId?: string }): Promise<string> {
   // Must happen synchronously inside the user gesture.
   unlockAudio();
   requestNotificationPermission();
@@ -21,7 +21,11 @@ export async function startSession(opts: { templateId: string | null; programId:
   if (active) return active.id;
 
   const settings = await getSettings();
-  const template = opts.templateId ? ((await get('templates', opts.templateId)) ?? null) : null;
+  const template = opts.repeatSessionId
+    ? await templateFromSession(opts.repeatSessionId)
+    : opts.templateId
+      ? ((await get('templates', opts.templateId)) ?? null)
+      : null;
   const exerciseList = await all('exercises');
   const exercises = new Map(exerciseList.map((e) => [e.id, e]));
   const histories = new Map<string, ExerciseHistoryEntry[]>();
@@ -59,9 +63,26 @@ export async function startSession(opts: { templateId: string | null; programId:
     };
   }
   if (!template && session.name === '') session.name = 'Fritt pass';
+  // A repeated free pass has no template of its own; keep the link only when there was one.
+  if (opts.repeatSessionId && template && !template.id) session.templateId = null;
   await put('sessions', session);
   await clearRest();
   return id;
+}
+
+/** An earlier pass as a template: same name, exercises and prescriptions (suggestions are rebuilt). */
+async function templateFromSession(sessionId: string): Promise<WorkoutTemplate | null> {
+  const past = await get('sessions', sessionId);
+  if (!past) return null;
+  return {
+    id: past.templateId ?? '',
+    name: past.name,
+    notes: '',
+    exercises: past.exercises.map(({ suggestion: _s, ...te }) => {
+      void _s;
+      return te;
+    }),
+  };
 }
 
 async function mutateSession(sessionId: string, fn: (s: WorkoutSession) => WorkoutSession | void): Promise<WorkoutSession | undefined> {

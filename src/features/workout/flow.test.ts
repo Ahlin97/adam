@@ -92,4 +92,16 @@ describe('workout flow', () => {
     expect(session.exercises[0]).toMatchObject({ sets: 1, warmupSets: 0 });
     expect(session.exercises[1].warmupSets).toBe(0);
   });
+
+  it('"Kör igen" starts a new pass with the same exercises and fresh suggestions', async () => {
+    const template = (await db.templates.get('st-5x5-a'))!;
+    const squat = template.exercises[0].exerciseId;
+    const first = await doSession(template.id, (ex) => (ex === squat ? 100 : 40));
+    await startSession({ templateId: null, programId: null, repeatSessionId: first });
+    const again = (await getActiveSession())!;
+    expect(again.id).not.toBe(first);
+    expect(again).toMatchObject({ name: '5 × 5 A', templateId: 'st-5x5-a', status: 'active' });
+    expect(again.exercises.map((e) => e.exerciseId)).toEqual(template.exercises.map((e) => e.exerciseId));
+    expect(again.exercises[0].suggestion?.weight).toBe(105);
+  });
 });
