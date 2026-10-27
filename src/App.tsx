@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import Layout from './Layout';
 import { AuthProvider, useAuth } from './sync/auth';
-import LoginPage from './sync/LoginPage';
+import LoginPage, { NewPasswordPage } from './sync/LoginPage';
 import { ensureSeeded } from './data/seed';
 import HomePage from './features/home/HomePage';
 import ExercisesPage from './features/library/ExercisesPage';
@@ -22,7 +22,7 @@ import ExerciseStatsPage from './features/stats/ExerciseStatsPage';
 import SettingsPage from './features/settings/SettingsPage';
 
 function Gate() {
-  const { loading, session, localOnly } = useAuth();
+  const { loading, session, localOnly, recovery, endRecovery } = useAuth();
   const [seeded, setSeeded] = useState(false);
   const ready = localOnly || !!session;
 
@@ -32,6 +32,7 @@ function Gate() {
 
   if (loading) return null;
   if (!ready) return <LoginPage />;
+  if (recovery) return <NewPasswordPage onDone={endRecovery} />;
   if (!seeded) return null;
 
   return (

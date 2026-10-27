@@ -105,13 +105,13 @@ function ExerciseRow({
 
   return (
     <li className={cx('relative', inGroup && 'pl-3')}>
-      {inGroup && <span aria-hidden className={cx('absolute left-0 top-2 w-1 rounded-full bg-accent', inGroupWithNext ? '-bottom-3' : 'bottom-2')} />}
+      {inGroup && <span aria-hidden className={cx('absolute left-0 top-2 w-1 rounded-full bg-fg/40', inGroupWithNext ? '-bottom-3' : 'bottom-2')} />}
       <Card className="space-y-3 p-3">
         <div className="flex items-start gap-2">
           <span
             className={cx(
               'mt-1 inline-flex min-w-9 shrink-0 justify-center rounded-lg px-1.5 py-0.5 text-sm font-bold',
-              label ? 'bg-accent text-accent-fg' : 'bg-surface-2 text-muted',
+              label ? 'bg-fg text-bg' : 'bg-surface-2 text-muted',
             )}
             aria-label={label ? `Superset ${label}` : `Övning ${index + 1}`}
           >

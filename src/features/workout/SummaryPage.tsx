@@ -1,7 +1,7 @@
 // Post-session summary: duration, sets, volume, personal records and the logged exercises.
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays, Trophy } from 'lucide-react';
 import { upcomingSchedule } from '@/engine';
 import type { Exercise, Program, SetEntry, Unit, WorkoutSession } from '@/engine';
 import { db } from '@/db/db';
@@ -149,8 +149,10 @@ export default function SummaryPage() {
         )}
 
         {records.length > 0 && (
-          <Card className="border-good/60">
-            <h3 className="mb-2 text-lg font-bold text-good">🏆 Nya personbästan</h3>
+          <Card>
+            <h3 className="mb-2 flex items-center gap-2 text-lg font-bold">
+              <Trophy aria-hidden size={20} className="text-warn" /> Nya personbästan
+            </h3>
             <ul className="space-y-1">
               {records.map((r, i) => (
                 <li key={i}>{r.text}</li>

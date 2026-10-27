@@ -67,7 +67,7 @@ export default function Layout() {
                   className={({ isActive }) =>
                     cx(
                       'press flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-[1.4rem] text-[0.7rem] font-semibold',
-                      isActive ? 'bg-accent text-accent-fg' : 'text-muted active:bg-surface-2',
+                      isActive ? 'bg-fg/12 text-fg' : 'text-muted active:bg-surface-2',
                     )
                   }
                 >

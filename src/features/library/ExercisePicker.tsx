@@ -108,7 +108,7 @@ export function ExercisePicker({
                     type="button"
                     onClick={() => pick(e)}
                     aria-pressed={multi ? on : undefined}
-                    className={cx('flex min-h-14 w-full items-center gap-3 rounded-xl px-2 py-2 text-left active:bg-surface-2', on && 'bg-accent/10')}
+                    className={cx('flex min-h-14 w-full items-center gap-3 rounded-xl px-2 py-2 text-left active:bg-surface-2', on && 'bg-fg/5')}
                   >
                     <span className="min-w-0 flex-1">
                       <span className="block font-semibold">{e.name}</span>
@@ -121,7 +121,7 @@ export function ExercisePicker({
                         aria-hidden
                         className={cx(
                           'tabular flex size-8 shrink-0 items-center justify-center rounded-full border text-sm font-extrabold',
-                          on ? 'border-accent bg-accent text-accent-fg' : 'border-border text-transparent',
+                          on ? 'bg-fg text-bg border-fg' : 'border-line text-transparent',
                         )}
                       >
                         {on ? idx + 1 : <Check size={16} />}

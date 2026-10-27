@@ -281,7 +281,7 @@ function WeekStrip({ progress, today }: { progress: WeekProgress; today: Date })
                 className={cx(
                   'flex size-9 items-center justify-center rounded-full text-xs font-bold',
                   trained[i]
-                    ? 'bg-accent text-accent-fg'
+                    ? 'bg-fg text-bg'
                     : planned[i]
                       ? cx('border-2', i < todayIdx ? 'border-border text-muted' : 'border-accent/60 text-fg')
                       : 'bg-surface-2/60 text-muted',
@@ -420,7 +420,7 @@ function YourPasses({
                   {summaryText(t)}
                 </span>
               </span>
-              <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent text-accent-fg">
+              <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border text-fg">
                 <Play size={18} fill="currentColor" />
               </span>
             </button>
@@ -487,7 +487,7 @@ function TodayCard({
                 <span className="min-w-0 flex-1 truncate font-semibold">{ex?.name ?? 'Okänd övning'}</span>
                 {reason && (
                   <span
-                    className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-accent px-2 py-0.5 text-xs font-extrabold text-accent-fg"
+                    className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-accent/50 px-2 py-0.5 text-xs font-extrabold text-accent"
                     title={reason}
                     aria-label={`Redo att höja: ${reason}`}
                   >

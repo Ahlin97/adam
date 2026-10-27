@@ -144,7 +144,7 @@ export function Chip({
       onClick={onClick}
       className={cx(
         'press min-h-10 shrink-0 rounded-full px-4 text-sm font-semibold border',
-        active ? 'bg-accent text-accent-fg border-accent' : 'bg-surface-2/70 text-fg border-border',
+        active ? 'bg-fg text-bg border-fg' : 'bg-surface-2/70 text-fg border-line',
       )}
     >
       {children}
@@ -200,7 +200,7 @@ export function Field({ label, children, hint }: { label: string; children: Reac
 }
 
 export const inputClass =
-  'w-full min-h-12 rounded-2xl border border-border bg-surface-2 px-4 text-base text-fg placeholder:text-muted focus:border-accent/60 focus:outline-none';
+  'w-full min-h-12 rounded-2xl border border-line bg-surface-2 px-4 text-base text-fg placeholder:text-muted focus:border-accent/60 focus:outline-none';
 
 export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
   return (

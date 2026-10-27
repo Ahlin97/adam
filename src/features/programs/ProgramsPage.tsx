@@ -32,7 +32,7 @@ export default function ProgramsPage() {
       back="/templates"
     >
       <Link to="/skapa/schema" className="card-hero press mb-4 flex min-h-20 items-center gap-4 p-4 active:opacity-90">
-        <span aria-hidden className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-accent-fg">
+        <span aria-hidden className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-surface-2 text-accent">
           <CalendarDays size={24} />
         </span>
         <span className="min-w-0 flex-1">
@@ -49,11 +49,11 @@ export default function ProgramsPage() {
           const isActive = p.id === settings.activeProgramId;
           return (
             <li key={p.id}>
-              <Card className={cx('space-y-3 p-3', isActive && 'border-accent')}>
+              <Card className={cx('space-y-3 p-3', isActive && 'border-fg/40')}>
                 <Link to={`/programs/${p.id}`} className="block min-h-12 rounded-xl active:bg-surface-2">
                   <span className="flex items-center gap-2 font-semibold">
                     {p.name || 'Namnlöst schema'}
-                    {isActive && <span className="rounded-full bg-accent px-2 py-0.5 text-xs text-accent-fg">Aktivt</span>}
+                    {isActive && <span className="rounded-full bg-fg px-2 py-0.5 text-xs text-bg">Aktivt</span>}
                   </span>
                   <span className="block text-sm text-muted">{programSummary(p, tplMap)}</span>
                 </Link>

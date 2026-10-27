@@ -135,16 +135,16 @@ function CategoryStep({ all, selected, onToggle }: { all: Exercise[]; selected: 
               className={cx(
                 'press relative flex min-h-28 flex-col justify-end rounded-[1.5rem] border p-4 text-left',
                 i === CATEGORIES.length - 1 && CATEGORIES.length % 2 === 1 && 'col-span-2 min-h-20',
-                on ? 'border-accent bg-accent text-accent-fg' : 'border-border bg-surface',
+                on ? 'bg-fg text-bg border-fg' : 'border-border bg-surface',
               )}
             >
               {on && (
-                <span aria-hidden className="absolute right-3 top-3 flex size-7 items-center justify-center rounded-full bg-accent-fg/15">
+                <span aria-hidden className="absolute right-3 top-3 flex size-7 items-center justify-center rounded-full bg-bg/15">
                   <Check size={16} strokeWidth={3} />
                 </span>
               )}
               <span className="text-2xl font-extrabold">{c.label}</span>
-              <span className={cx('text-sm', on ? 'text-accent-fg/70' : 'text-muted')}>{counts.get(c.key) ?? 0} övningar</span>
+              <span className={cx('text-sm', on ? 'text-bg/70' : 'text-muted')}>{counts.get(c.key) ?? 0} övningar</span>
             </button>
           );
         })}
@@ -218,7 +218,7 @@ function ExerciseStep({
                     type="button"
                     aria-pressed={on}
                     onClick={() => onToggle(e)}
-                    className={cx('flex min-h-14 w-full items-center gap-3 rounded-xl px-2 py-2 text-left active:bg-surface-2', on && 'bg-accent/10')}
+                    className={cx('flex min-h-14 w-full items-center gap-3 rounded-xl px-2 py-2 text-left active:bg-surface-2', on && 'bg-fg/5')}
                   >
                     <span className="min-w-0 flex-1">
                       <span className="block font-semibold">{e.name}</span>
@@ -231,7 +231,7 @@ function ExerciseStep({
                       aria-hidden
                       className={cx(
                         'tabular flex size-8 shrink-0 items-center justify-center rounded-full border text-sm font-extrabold',
-                        on ? 'border-accent bg-accent text-accent-fg' : 'border-border',
+                        on ? 'bg-fg text-bg border-fg' : 'border-line',
                       )}
                     >
                       {on ? idx + 1 : ''}

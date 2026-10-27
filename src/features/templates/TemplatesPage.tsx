@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Play } from 'lucide-react';
 import { estimateMinutes } from '@/engine';
 import { useActiveSession, useCompletedSessions, useExerciseMap, usePrograms, useSettings, useTemplates } from '@/db/hooks';
 import { formatDate } from '@/lib/format';
@@ -106,12 +107,12 @@ export default function TemplatesPage() {
                       {names && <span className="block truncate text-xs text-muted">{names}</span>}
                     </Link>
                     <Button
-                      variant="good"
+                      className="min-w-12 rounded-full px-0"
                       disabled={busy || t.exercises.length === 0}
                       aria-label={`Starta ${t.name || 'pass'}`}
                       onClick={() => void start(t.id)}
                     >
-                      Starta
+                      <Play aria-hidden size={18} fill="currentColor" />
                     </Button>
                   </Card>
                 </li>

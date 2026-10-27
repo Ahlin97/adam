@@ -107,7 +107,7 @@ export default function CreateSchemaPage() {
                 onClick={() => setDays((list) => (on ? list.filter((x) => x !== i) : [...list, i].sort((a, b) => a - b)))}
                 className={cx(
                   'press flex min-h-14 items-center justify-between rounded-2xl border px-4 text-lg font-bold',
-                  on ? 'border-accent bg-accent text-accent-fg' : 'border-border bg-surface',
+                  on ? 'bg-fg text-bg border-fg' : 'border-border bg-surface',
                 )}
               >
                 {label}

@@ -51,8 +51,8 @@ function Toggle({ label, checked, onChange, hint }: { label: string; checked: bo
         <span className="block">{label}</span>
         {hint && <span className="block text-xs text-muted">{hint}</span>}
       </span>
-      <span aria-hidden className={cx('relative h-8 w-14 shrink-0 rounded-full border transition-colors', checked ? 'border-accent bg-accent' : 'border-border bg-surface-2')}>
-        <span className={cx('absolute top-0.5 h-6 w-6 rounded-full bg-white transition-all', checked ? 'left-7' : 'left-0.5')} />
+      <span aria-hidden className={cx('relative h-8 w-14 shrink-0 rounded-full border transition-colors', checked ? 'border-fg bg-fg' : 'border-border bg-surface-2')}>
+        <span className={cx('absolute top-0.5 h-6 w-6 rounded-full transition-all', checked ? 'left-7 bg-bg' : 'left-0.5 bg-fg')} />
       </span>
     </button>
   );
@@ -388,6 +388,8 @@ export default function SettingsPage() {
 
   return (
     <Page title="Inställningar" className="space-y-6">
+      <AccountSection />
+
       <Section id="s-units" title="Enheter">
         <div className="flex gap-2" role="radiogroup" aria-label="Viktenhet">
           {(['kg', 'lb'] as Unit[]).map((u) => (
@@ -397,57 +399,10 @@ export default function SettingsPage() {
               role="radio"
               aria-checked={unit === u}
               onClick={() => save({ unit: u })}
-              className={cx('min-h-12 flex-1 rounded-xl border font-semibold', unit === u ? 'border-accent bg-accent text-accent-fg' : 'border-border bg-surface-2')}
+              className={cx('min-h-12 flex-1 rounded-xl border font-semibold', unit === u ? 'bg-fg text-bg border-fg' : 'border-border bg-surface-2')}
             >
               {u === 'kg' ? 'Kilogram (kg)' : 'Pound (lb)'}
             </button>
-          ))}
-        </div>
-      </Section>
-
-      <Section id="s-equipment" title="Utrustning" description="Används för skivkalkylatorn och för att avrunda föreslagna vikter till sådant du faktiskt kan ta.">
-        <WeightInput label="Stångvikt" kg={s.barWeight} unit={unit} onCommit={(v) => v != null && save({ barWeight: v })} />
-        <div className="space-y-2">
-          <div className="text-sm text-muted">Tillgängliga skivor (par)</div>
-          <div className="flex flex-wrap gap-2">
-            {[...standard, ...extraPlates].map((p) => (
-              <Chip key={p} active={s.plates.some((x) => near(x, p))} onClick={() => togglePlate(p)}>
-                {fmtWeight(p, unit)}
-              </Chip>
-            ))}
-          </div>
-        </div>
-        <WeightList
-          label="Hantlar"
-          values={s.dumbbells}
-          unit={unit}
-          onChange={(v) => save({ dumbbells: v })}
-          fill={
-            <Button
-              size="sm"
-              onClick={() => {
-                const list: number[] = [];
-                for (let w = dumbbellStep; w <= dumbbellMax; w += dumbbellStep) list.push(Math.round(fromUnit(w, unit) * 1000) / 1000);
-                save({ dumbbells: list });
-              }}
-            >
-              Fyll {dumbbellStep}–{dumbbellMax} {unit} i steg om {dumbbellStep}
-            </Button>
-          }
-        />
-        <WeightList label="Kettlebells" values={s.kettlebells} unit={unit} onChange={(v) => save({ kettlebells: v })} />
-      </Section>
-
-      <Section id="s-steps" title="Standardsteg" description="Hur mycket vikten höjs per steg när en övning inte har ett eget viktsteg.">
-        <div className="grid grid-cols-2 gap-3">
-          {(Object.keys(STEP_LABELS) as (keyof DefaultSteps)[]).map((k) => (
-            <WeightInput
-              key={k}
-              label={STEP_LABELS[k]}
-              kg={s.defaultSteps[k]}
-              unit={unit}
-              onCommit={(v) => v != null && v > 0 && save({ defaultSteps: { ...s.defaultSteps, [k]: v } })}
-            />
           ))}
         </div>
       </Section>
@@ -462,16 +417,6 @@ export default function SettingsPage() {
           format={formatDuration}
           onChange={(v) => save({ defaultRestSec: v })}
         />
-        <div className="space-y-2">
-          <div className="text-sm text-muted">Standardregel för progression</div>
-          <div className="flex flex-wrap gap-2">
-            {(Object.keys(RULE_LABELS) as ProgressionRule[]).map((r) => (
-              <Chip key={r} active={s.defaultRule === r} onClick={() => save({ defaultRule: r })}>
-                {RULE_LABELS[r]}
-              </Chip>
-            ))}
-          </div>
-        </div>
         <Toggle label="Ljud när vilan är slut" checked={s.soundEnabled} onChange={(v) => save({ soundEnabled: v })} />
         <Toggle label="Vibration när vilan är slut" checked={s.vibrationEnabled} onChange={(v) => save({ vibrationEnabled: v })} hint="Stöds inte i alla webbläsare (t.ex. Safari på iPhone)." />
         <WeightInput
@@ -492,13 +437,79 @@ export default function SettingsPage() {
         </h2>
         <Card className="p-1">
           <ListLink to="/exercises">Övningar</ListLink>
-          <ListLink to="/programs">Program</ListLink>
+          <ListLink to="/programs">Schema</ListLink>
         </Card>
       </section>
 
       <DataSection />
 
-      <AccountSection />
+      {/* Rarely needed: equipment, weight steps and progression rule. Closed by default to keep the page short. */}
+      <details className="group space-y-6">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between rounded-2xl border border-border bg-surface px-4 font-semibold">
+          Avancerat
+          <span aria-hidden className="text-sm font-normal text-muted group-open:hidden">Utrustning, viktsteg, progression</span>
+        </summary>
+        <div className="mt-6 space-y-6">
+          <Section id="s-equipment" title="Utrustning" description="Används för skivkalkylatorn och för att avrunda föreslagna vikter till sådant du faktiskt kan ta.">
+            <WeightInput label="Stångvikt" kg={s.barWeight} unit={unit} onCommit={(v) => v != null && save({ barWeight: v })} />
+            <div className="space-y-2">
+              <div className="text-sm text-muted">Tillgängliga skivor (par)</div>
+              <div className="flex flex-wrap gap-2">
+                {[...standard, ...extraPlates].map((p) => (
+                  <Chip key={p} active={s.plates.some((x) => near(x, p))} onClick={() => togglePlate(p)}>
+                    {fmtWeight(p, unit)}
+                  </Chip>
+                ))}
+              </div>
+            </div>
+            <WeightList
+              label="Hantlar"
+              values={s.dumbbells}
+              unit={unit}
+              onChange={(v) => save({ dumbbells: v })}
+              fill={
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    const list: number[] = [];
+                    for (let w = dumbbellStep; w <= dumbbellMax; w += dumbbellStep) list.push(Math.round(fromUnit(w, unit) * 1000) / 1000);
+                    save({ dumbbells: list });
+                  }}
+                >
+                  Fyll {dumbbellStep}–{dumbbellMax} {unit} i steg om {dumbbellStep}
+                </Button>
+              }
+            />
+            <WeightList label="Kettlebells" values={s.kettlebells} unit={unit} onChange={(v) => save({ kettlebells: v })} />
+          </Section>
+
+          <Section id="s-steps" title="Standardsteg" description="Hur mycket vikten höjs per steg när en övning inte har ett eget viktsteg.">
+            <div className="grid grid-cols-2 gap-3">
+              {(Object.keys(STEP_LABELS) as (keyof DefaultSteps)[]).map((k) => (
+                <WeightInput
+                  key={k}
+                  label={STEP_LABELS[k]}
+                  kg={s.defaultSteps[k]}
+                  unit={unit}
+                  onCommit={(v) => v != null && v > 0 && save({ defaultSteps: { ...s.defaultSteps, [k]: v } })}
+                />
+              ))}
+            </div>
+          </Section>
+
+          <Section id="s-rule" title="Progression" description="Hur vikten föreslås höjas när en övning inte har en egen regel.">
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
+                {(Object.keys(RULE_LABELS) as ProgressionRule[]).map((r) => (
+                  <Chip key={r} active={s.defaultRule === r} onClick={() => save({ defaultRule: r })}>
+                    {RULE_LABELS[r]}
+                  </Chip>
+                ))}
+              </div>
+            </div>
+          </Section>
+        </div>
+      </details>
     </Page>
   );
 }

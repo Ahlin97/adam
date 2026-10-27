@@ -1,6 +1,6 @@
 // The active session logger. All state that matters lives in IndexedDB (session, sets, rest timer);
 // React state only holds transient UI (which sheet is open, the set being edited before "Klar").
-import { Check, ChevronLeft, Flag, History, MoreHorizontal, Plus, SlidersHorizontal, TrendingUp, Undo2 } from 'lucide-react';
+import { Check, ChevronLeft, Flag, History, MoreHorizontal, NotebookPen, Plus, SlidersHorizontal, TrendingUp, Undo2 } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -315,53 +315,49 @@ function ActiveWorkout({
                 <div
                   className={cx(
                     'card',
-                    isCurrent && 'border-accent/70! shadow-[0_0_0_1px_rgb(212_255_58/0.35),0_12px_32px_-18px_rgb(212_255_58/0.5)]!',
-                    complete && !isCurrent && 'opacity-70',
-                    inSuperset && 'border-l-4! border-l-accent/60!',
+                    isCurrent && 'border-fg/40!',
+                    complete && !isCurrent && 'opacity-60',
+                    inSuperset && 'border-l-4! border-l-fg/30!',
                   )}
                 >
                   <div className="flex items-stretch">
                     <button
                       type="button"
-                      className="flex min-h-16 min-w-0 flex-1 items-center gap-3 rounded-l-[1.5rem] px-3 py-2 text-left active:bg-surface-2"
+                      className="flex min-h-12 min-w-0 flex-1 items-center gap-3 rounded-l-[1.5rem] px-3 py-1.5 text-left active:bg-surface-2"
                       onClick={() => setFocusId(se.id)}
                       aria-label={`${ex?.name ?? 'Övning'}, ${logged.length} av ${total} set. Logga denna övning`}
                     >
                       <span
                         aria-hidden
                         className={cx(
-                          'tabular flex size-10 shrink-0 items-center justify-center rounded-2xl text-sm font-extrabold',
-                          complete ? 'bg-accent text-accent-fg' : isCurrent ? 'bg-accent/15 text-accent' : 'bg-surface-2 text-muted',
+                          'tabular flex size-8 shrink-0 items-center justify-center rounded-xl text-sm font-extrabold',
+                          complete ? 'bg-surface-2 text-fg' : isCurrent ? 'bg-fg text-bg' : 'bg-surface-2 text-muted',
                         )}
                       >
-                        {complete ? <Check size={18} strokeWidth={3} /> : i + 1}
+                        {complete ? <Check size={16} strokeWidth={3} /> : i + 1}
                       </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-center gap-2">
-                          <span className="truncate font-bold">{ex?.name ?? 'Okänd övning'}</span>
-                          {se.suggestion?.readyToIncrease && (
-                            <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-accent px-2 py-0.5 text-xs font-extrabold text-accent-fg" title="Redo att höja">
-                              <TrendingUp aria-hidden size={12} strokeWidth={3} /> Höj
-                            </span>
-                          )}
-                        </span>
-                        <span className="block text-sm text-muted">
-                          {logged.length}/{total} set
-                          {inSuperset && ' · Superset'}
-                          {se.notes && ' · 📝'}
-                        </span>
+                      <span className="flex min-w-0 flex-1 items-center gap-2">
+                        <span className="truncate font-bold">{ex?.name ?? 'Okänd övning'}</span>
+                        {se.suggestion?.readyToIncrease && (
+                          <TrendingUp aria-label="Redo att höja" size={16} strokeWidth={3} className="shrink-0 text-accent" />
+                        )}
+                        {se.notes && <NotebookPen aria-label="Har anteckning" size={14} className="shrink-0 text-muted" />}
+                      </span>
+                      <span className="tabular shrink-0 text-sm text-muted">
+                        {inSuperset && 'Superset · '}
+                        {logged.length}/{total}
                       </span>
                     </button>
                     <button
                       type="button"
-                      className="flex min-h-16 min-w-12 items-center justify-center rounded-r-[1.5rem] text-muted active:bg-surface-2"
+                      className="flex min-h-12 min-w-12 items-center justify-center rounded-r-[1.5rem] text-muted active:bg-surface-2"
                       aria-label={`Meny för ${ex?.name ?? 'övning'}`}
                       onClick={() => setExMenu(se.id)}
                     >
-                      <MoreHorizontal aria-hidden size={22} />
+                      <MoreHorizontal aria-hidden size={20} />
                     </button>
                   </div>
-                  {logged.length > 0 && (
+                  {logged.length > 0 && isCurrent && (
                     <ul className="flex flex-wrap gap-2 px-3 pb-3" aria-label="Loggade set">
                       {logged.map((s, k) => (
                         <li key={s.id}>
@@ -637,7 +633,7 @@ function CurrentSetCard({
             <span className="tabular rounded-full bg-surface-2 px-2.5 py-0.5 font-bold">
               Set {next.setNumber} av {Math.max(next.totalSets, next.setNumber)}
             </span>
-            <TypeBadge type={type} />
+            {type !== 'working' && <TypeBadge type={type} />}
             {se.targetRpe != null && <span className="text-muted">mål-RPE {String(se.targetRpe).replace('.', ',')}</span>}
           </div>
         </div>
@@ -647,22 +643,19 @@ function CurrentSetCard({
       </div>
 
       <div className="mt-2 space-y-1 text-sm">
-        {showReason && (
-          <p
-            className={cx(
-              'rounded-xl px-3 py-1.5 font-semibold',
-              suggestion!.readyToIncrease ? 'bg-accent/12 text-accent' : suggestion!.kind === 'deload' ? 'bg-warn/10 text-warn' : 'bg-surface-2 text-fg',
-            )}
-          >
-            {suggestion!.reason}
+        {/* One line: the suggestion when there is one (it already says what happened last time), else last time. */}
+        {showReason ? (
+          <p className={cx('flex items-start gap-1.5 px-1 font-semibold', suggestion!.kind === 'deload' ? 'text-warn' : 'text-fg')}>
+            {suggestion!.readyToIncrease && <TrendingUp aria-hidden size={16} strokeWidth={3} className="mt-0.5 shrink-0 text-accent" />}
+            {/* The engine's reason starts with its own arrow; the icon replaces it. */}
+            <span>{suggestion!.readyToIncrease ? suggestion!.reason.replace(/^↑\s*/, '') : suggestion!.reason}</span>
           </p>
-        )}
-        {suggestion?.plateau && <p className="text-warn">Platå – överväg deload eller nytt repsintervall.</p>}
-        {last ? (
+        ) : last ? (
           <p className="flex items-center gap-1.5 px-1 text-muted">
             <History aria-hidden size={14} /> Förra gången: <span className="font-semibold text-fg">{last}</span>
           </p>
         ) : null}
+        {suggestion?.plateau && <p className="px-1 text-warn">Platå – överväg deload eller nytt repsintervall.</p>}
         {current.firstTime && <p className="font-semibold text-warn">Första gången – välj en startvikt.</p>}
       </div>
 
