@@ -7,7 +7,28 @@ vi.mock('@/lib/supabase', () => ({ supabase: null, functionsUrl: null }));
 
 const { db } = await import('@/db/db');
 const { ensureSeeded } = await import('@/data/seed');
-const { getActiveSession, getSessionSets, getExerciseHistory } = await import('@/db/repo');
+const { getActiveSession, getSessionSets, getExerciseHistory, putMany } = await import('@/db/repo');
+// The app ships no passes; the tests bring their own (same shape the old 5 × 5 starter had).
+const rx = (exerciseId: string, n: number, sets = 5) => ({
+  id: `${exerciseId}-${n}`,
+  exerciseId,
+  sets,
+  repMin: 5,
+  repMax: 5,
+  targetRpe: null,
+  restSec: 180,
+  warmupSets: 2,
+  rule: 'linear' as const,
+  supersetGroup: null,
+  notes: '',
+});
+async function addTestTemplates() {
+  await putMany('templates', [
+    { id: 'test-5x5-a', name: '5 × 5 A', notes: '', exercises: [rx('bi-squat', 1), rx('bi-bench-press', 2), rx('bi-barbell-row', 3)] },
+    { id: 'test-5x5-b', name: '5 × 5 B', notes: '', exercises: [rx('bi-squat', 1), rx('bi-overhead-press', 2), rx('bi-deadlift', 3, 1)] },
+  ]);
+}
+
 const { startSession, logSet, finishSession, replaceExercise } = await import('./start');
 const { nextSetInSession } = await import('@/engine');
 
@@ -37,10 +58,11 @@ describe('workout flow', () => {
   beforeEach(async () => {
     await Promise.all(db.tables.map((t) => t.clear()));
     await ensureSeeded();
+    await addTestTemplates();
   });
 
   it('suggests +5 kg squat after a completed 5 × 5 session', async () => {
-    const template = (await db.templates.get('st-5x5-a'))!;
+    const template = (await db.templates.get('test-5x5-a'))!;
     expect(template).toBeTruthy();
     const squat = template.exercises[0].exerciseId;
 
@@ -57,7 +79,7 @@ describe('workout flow', () => {
   });
 
   it('repeats the weight when a set was missed', async () => {
-    const template = (await db.templates.get('st-5x5-a'))!;
+    const template = (await db.templates.get('test-5x5-a'))!;
     const squat = template.exercises[0].exerciseId;
     let n = 0;
     await doSession(template.id, (ex) => (ex === squat ? 100 : 40), () => (++n === 3 ? 4 : 5));
@@ -68,7 +90,7 @@ describe('workout flow', () => {
   });
 
   it('swapping after warm-ups replaces the exercise and skips a second warm-up', async () => {
-    const id = await startSession({ templateId: 'st-5x5-b', programId: null });
+    const id = await startSession({ templateId: 'test-5x5-b', programId: null });
     let session = (await getActiveSession())!;
     const press = session.exercises[1];
     const log = (seId: string, exerciseId: string, type: 'warmup' | 'working') =>
@@ -94,14 +116,29 @@ describe('workout flow', () => {
   });
 
   it('"Kör igen" starts a new pass with the same exercises and fresh suggestions', async () => {
-    const template = (await db.templates.get('st-5x5-a'))!;
+    const template = (await db.templates.get('test-5x5-a'))!;
     const squat = template.exercises[0].exerciseId;
     const first = await doSession(template.id, (ex) => (ex === squat ? 100 : 40));
     await startSession({ templateId: null, programId: null, repeatSessionId: first });
     const again = (await getActiveSession())!;
     expect(again.id).not.toBe(first);
-    expect(again).toMatchObject({ name: '5 × 5 A', templateId: 'st-5x5-a', status: 'active' });
+    expect(again).toMatchObject({ name: '5 × 5 A', templateId: 'test-5x5-a', status: 'active' });
     expect(again.exercises.map((e) => e.exerciseId)).toEqual(template.exercises.map((e) => e.exerciseId));
     expect(again.exercises[0].suggestion?.weight).toBe(105);
+  });
+
+  it('removes old starter passes and programs but keeps your own', async () => {
+    const { saveSettings, getSettings, get } = await import('@/db/repo');
+    await putMany('templates', [{ id: 'st-push', name: 'Push', notes: '', exercises: [] }]);
+    await putMany('programs', [
+      { id: 'st-prog-ppl', name: 'PPL', mode: 'rotation', rotation: ['st-push'], weekdays: [null, null, null, null, null, null, null], reminderDays: [true, false, false, false, false, false, false] },
+    ]);
+    await saveSettings({ activeProgramId: 'st-prog-ppl' });
+    await ensureSeeded();
+    expect(await get('templates', 'st-push')).toBeUndefined();
+    expect(await get('programs', 'st-prog-ppl')).toBeUndefined();
+    expect((await db.templates.get('st-push'))?._dirty).toBe(1); // deletion is synced
+    expect((await getSettings()).activeProgramId).toBeNull();
+    expect(await get('templates', 'test-5x5-a')).toBeDefined();
   });
 });

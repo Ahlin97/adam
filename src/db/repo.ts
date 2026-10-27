@@ -118,6 +118,29 @@ export async function getActiveSession(): Promise<WorkoutSession | undefined> {
   return rows[0] ? strip(rows[0]) : undefined;
 }
 
+/** Id prefix of the starter passes and programs earlier versions created for every account. */
+export const STARTER_PREFIX = 'st-';
+
+/**
+ * Soft-delete starter passes and programs (synced as deleted, so other devices follow) and
+ * clear the active program if it was one. History keeps working: sessions copy their exercises.
+ * Returns how many rows were removed; cheap to call after every sync.
+ */
+export async function removeStarterContent(): Promise<number> {
+  let n = 0;
+  for (const table of ['templates', 'programs'] as const) {
+    const rows = await db[table].where('id').startsWith(STARTER_PREFIX).toArray();
+    for (const r of rows) {
+      if (r._deleted) continue;
+      await remove(table, r.id);
+      n++;
+    }
+  }
+  const settings = await getSettings();
+  if (settings.activeProgramId?.startsWith(STARTER_PREFIX)) await saveSettings({ activeProgramId: null });
+  return n;
+}
+
 /**
  * Two devices that start a pass offline can both end up with an active session after syncing.
  * Keep the one with the latest activity (last logged set, else start time; id breaks ties so every

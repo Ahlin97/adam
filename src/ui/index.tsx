@@ -58,7 +58,8 @@ export function Page({
   className,
 }: {
   title: string;
-  back?: string | true;
+  /** Where the back button goes: a path, true for history back, or a handler (e.g. a previous step). */
+  back?: string | true | (() => void);
   actions?: ReactNode;
   children: ReactNode;
   className?: string;
@@ -73,7 +74,7 @@ export function Page({
               type="button"
               aria-label="Tillbaka"
               className="press flex min-h-11 min-w-11 items-center justify-center rounded-full bg-surface-2 active:bg-border"
-              onClick={() => (back === true ? navigate(-1) : navigate(back))}
+              onClick={() => (typeof back === 'function' ? back() : back === true ? navigate(-1) : navigate(back))}
             >
               <ChevronLeft aria-hidden size={22} strokeWidth={2.5} />
             </button>

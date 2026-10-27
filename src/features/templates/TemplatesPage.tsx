@@ -46,11 +46,11 @@ export default function TemplatesPage() {
 
   return (
     <Page
-      title="Passmallar"
+      title="Mina pass"
       actions={
         <>
           <Link to="/programs" className={headerLink}>
-            Program
+            Schema
           </Link>
           <Link to="/exercises" className={headerLink}>
             Övningar
@@ -64,18 +64,13 @@ export default function TemplatesPage() {
             {error}
           </p>
         )}
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="primary" onClick={() => navigate('/templates/new')}>
-            + Nytt pass
-          </Button>
-          <Button disabled={busy} onClick={() => void start(null)}>
-            Starta tomt pass
-          </Button>
-        </div>
+        <Button variant="primary" size="lg" className="w-full" onClick={() => navigate('/skapa/pass')}>
+          + Skapa gympass
+        </Button>
 
         <Link to="/programs" className="flex min-h-14 items-center justify-between rounded-2xl border border-border bg-surface px-4 py-2 active:bg-surface-2">
           <span>
-            <span className="block text-sm text-muted">Aktivt program</span>
+            <span className="block text-sm text-muted">Aktivt schema</span>
             <span className="block font-semibold">{activeProgram?.name ?? 'Inget valt'}</span>
           </span>
           <span aria-hidden className="text-muted">
@@ -85,11 +80,11 @@ export default function TemplatesPage() {
 
         <section aria-labelledby="tpl-heading" className="space-y-3">
           <h2 id="tpl-heading" className="text-lg font-bold">
-            Passmallar
+            Sparade pass
           </h2>
           {templates === undefined && <p className="text-muted">Laddar…</p>}
           {templates?.length === 0 && (
-            <EmptyState title="Inga pass ännu">Skapa ett pass, t.ex. "Push" eller "Helkropp A".</EmptyState>
+            <EmptyState title="Inga pass ännu">Tryck på Skapa gympass för att bygga ditt första.</EmptyState>
           )}
           <ul className="space-y-3">
             {ordered?.map((t) => {

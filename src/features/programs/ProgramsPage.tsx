@@ -28,25 +28,22 @@ export default function ProgramsPage() {
 
   return (
     <Page
-      title="Program"
+      title="Schema"
       back="/templates"
-      actions={
-        <Button onClick={() => navigate('/programs/new')}>+ Eget program</Button>
-      }
     >
-      <Link to="/programs/plan" className="card-hero press mb-4 flex min-h-20 items-center gap-4 p-4 active:opacity-90">
+      <Link to="/skapa/schema" className="card-hero press mb-4 flex min-h-20 items-center gap-4 p-4 active:opacity-90">
         <span aria-hidden className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-accent-fg">
           <CalendarDays size={24} />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-lg font-extrabold">Planera veckan</span>
-          <span className="block text-sm text-muted">Välj dagar och upplägg – klart på en minut.</span>
+          <span className="block text-lg font-extrabold">Skapa schema</span>
+          <span className="block text-sm text-muted">Välj dagar och bygg ett pass för varje dag.</span>
         </span>
         <ChevronRight aria-hidden size={22} className="text-muted" />
       </Link>
-      <p className="mb-4 text-sm text-muted">Det aktiva programmet styr vilket pass som visas som dagens pass på startsidan.</p>
+      <p className="mb-4 text-sm text-muted">Det aktiva schemat styr vilket pass som visas som dagens pass på startsidan.</p>
       {sorted === undefined && <p className="text-muted">Laddar…</p>}
-      {sorted?.length === 0 && <EmptyState title="Inga program ännu">Skapa ett program med veckodagar eller rotation.</EmptyState>}
+      {sorted?.length === 0 && <EmptyState title="Inget schema ännu">Skapa ett schema ovan.</EmptyState>}
       <ul className="space-y-3">
         {sorted?.map((p) => {
           const isActive = p.id === settings.activeProgramId;
@@ -55,7 +52,7 @@ export default function ProgramsPage() {
               <Card className={cx('space-y-3 p-3', isActive && 'border-accent')}>
                 <Link to={`/programs/${p.id}`} className="block min-h-12 rounded-xl active:bg-surface-2">
                   <span className="flex items-center gap-2 font-semibold">
-                    {p.name || 'Namnlöst program'}
+                    {p.name || 'Namnlöst schema'}
                     {isActive && <span className="rounded-full bg-accent px-2 py-0.5 text-xs text-accent-fg">Aktivt</span>}
                   </span>
                   <span className="block text-sm text-muted">{programSummary(p, tplMap)}</span>

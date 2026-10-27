@@ -3,7 +3,7 @@
 // Conflicts: a locally dirty row wins and is pushed; otherwise the server copy wins.
 import { useSyncExternalStore } from 'react';
 import { db, SYNCED_TABLES, type SyncedTable } from '@/db/db';
-import { onLocalChange, resolveDuplicateActiveSessions, strip } from '@/db/repo';
+import { onLocalChange, removeStarterContent, resolveDuplicateActiveSessions, strip } from '@/db/repo';
 import { supabase } from '@/lib/supabase';
 
 export type SyncState = 'local-only' | 'signed-out' | 'idle' | 'syncing' | 'offline' | 'error';
@@ -97,6 +97,8 @@ async function runOnce() {
     for (const t of SYNCED_TABLES) await pullTable(t);
     // A pull can bring in a second active pass from another device; settle it (pushed on the next run).
     if (await resolveDuplicateActiveSessions()) again = true;
+    // Starter passes pulled from an account created before they were dropped.
+    if (await removeStarterContent()) again = true;
     setStatus({ state: 'idle', lastSyncedAt: new Date().toISOString() });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

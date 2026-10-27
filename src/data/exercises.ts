@@ -260,4 +260,21 @@ export const BUILTIN_EXERCISES: Exercise[] = [
   ex('bi-ab-wheel', 'Magrulle', 'abs', ['lats', 'shoulders'], 'other', I, bw),
   ex('bi-russian-twist', 'Russian twist', 'obliques', ['abs'], 'bodyweight', I, bwAdded),
   ex('bi-pallof-press', 'Pallof press', 'obliques', ['abs'], 'cable', I),
+
+  // ---------- Fler maskiner (vanliga på gym; passbyggaren utgår från maskiner) ----------
+  ex('bi-biceps-machine', 'Bicepsmaskin', 'biceps', ['forearms'], 'machine', I),
+  ex('bi-triceps-machine', 'Tricepsmaskin', 'triceps', [], 'machine', I),
+  ex('bi-dip-machine', 'Dipsmaskin', 'triceps', ['chest', 'shoulders'], 'machine', C),
+  ex('bi-incline-machine-press', 'Lutande bröstpress i maskin', 'chest', ['shoulders', 'triceps'], 'machine', C),
+  ex('bi-smith-bench-press', 'Bänkpress i smithmaskin', 'chest', ['triceps', 'shoulders'], 'machine', C),
+  ex('bi-machine-pulldown', 'Latsdrag i maskin', 'lats', ['biceps', 'back'], 'machine', C),
+  ex('bi-machine-high-row', 'Hög rodd i maskin', 'back', ['lats', 'biceps'], 'machine', C),
+  ex('bi-pullover-machine', 'Pullover i maskin', 'lats', ['chest'], 'machine', I),
+  ex('bi-back-extension-machine', 'Ryggresningsmaskin', 'lower_back', ['glutes', 'hamstrings'], 'machine', I),
+  ex('bi-smith-shoulder-press', 'Axelpress i smithmaskin', 'shoulders', ['triceps'], 'machine', C),
+  ex('bi-machine-rear-delt-row', 'Bakre axel-rodd i maskin', 'shoulders', ['back', 'traps'], 'machine', I),
+  ex('bi-pendulum-squat', 'Pendelknäböj', 'quads', ['glutes'], 'machine', C),
+  ex('bi-standing-leg-curl', 'Stående lårcurl', 'hamstrings', [], 'machine', I),
+  ex('bi-hip-thrust-machine', 'Höftlyft i maskin', 'glutes', ['hamstrings'], 'machine', C),
+  ex('bi-glute-kickback-machine', 'Glute kickback i maskin', 'glutes', ['hamstrings'], 'machine', I),
 ];

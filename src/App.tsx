@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import Layout from './Layout';
 import { AuthProvider, useAuth } from './sync/auth';
 import LoginPage from './sync/LoginPage';
@@ -11,7 +11,8 @@ import TemplatesPage from './features/templates/TemplatesPage';
 import TemplateEditPage from './features/templates/TemplateEditPage';
 import ProgramsPage from './features/programs/ProgramsPage';
 import ProgramEditPage from './features/programs/ProgramEditPage';
-import PlanWeekPage from './features/programs/PlanWeekPage';
+import CreatePassPage from './features/create/CreatePassPage';
+import CreateSchemaPage from './features/create/CreateSchemaPage';
 import WorkoutPage from './features/workout/WorkoutPage';
 import SummaryPage from './features/workout/SummaryPage';
 import HistoryPage from './features/history/HistoryPage';
@@ -42,7 +43,9 @@ function Gate() {
         <Route path="templates" element={<TemplatesPage />} />
         <Route path="templates/:id" element={<TemplateEditPage />} />
         <Route path="programs" element={<ProgramsPage />} />
-        <Route path="programs/plan" element={<PlanWeekPage />} />
+        <Route path="programs/plan" element={<Navigate to="/skapa/schema" replace />} />
+        <Route path="skapa/schema" element={<CreateSchemaPage />} />
+        <Route path="skapa/pass" element={<CreatePassPage />} />
         <Route path="programs/:id" element={<ProgramEditPage />} />
         <Route path="workout" element={<WorkoutPage />} />
         <Route path="workout/summary/:id" element={<SummaryPage />} />

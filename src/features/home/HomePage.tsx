@@ -7,7 +7,7 @@ import { useActiveSession, useCompletedSessions, useExerciseMap, usePrograms, us
 import { Button, Card, EmptyState, Page, Sheet, cx } from '@/ui';
 import { formatDate, formatLongDate } from '@/lib/format';
 import { startSession } from '@/features/workout/start';
-import { BookOpen, CalendarDays, Check, Clock, Dumbbell, Flame, Layers, Play, Plus, TrendingUp } from 'lucide-react';
+import { CalendarDays, Check, Clock, Dumbbell, Flame, Layers, Play, Plus, TrendingUp } from 'lucide-react';
 import { WEEKDAY_LABELS, WEEKDAY_SHORT } from '@/lib/labels';
 import { weekProgress, type WeekProgress } from './weekProgress';
 
@@ -142,12 +142,17 @@ export default function HomePage() {
       {loading ? null : active ? (
         <ActiveCard session={active} onContinue={() => navigate('/workout')} />
       ) : !program ? (
-        <QuickStartCard
-          templates={templates ?? []}
-          lastTemplateId={completed?.find((s) => s.templateId && templateMap.has(s.templateId))?.templateId ?? null}
-          starting={starting}
-          onStart={(id) => void start(id, null)}
-        />
+        <>
+          <StartChoices />
+          {(templates?.length ?? 0) > 0 && (
+            <YourPasses
+              templates={templates ?? []}
+              lastTemplateId={completed?.find((s) => s.templateId && templateMap.has(s.templateId))?.templateId ?? null}
+              starting={starting}
+              onStart={(id) => void start(id, null)}
+            />
+          )}
+        </>
       ) : todayTemplate ? (
         <TodayCard
           template={todayTemplate}
@@ -165,7 +170,7 @@ export default function HomePage() {
         <Card className="space-y-3 p-5">
           <Eyebrow>{program.name}</Eyebrow>
           <h2 className="text-3xl font-extrabold">Vilodag</h2>
-          <p className="text-muted">Inget pass planerat idag. Vila och återhämta dig – eller kör ändå.</p>
+          <p className="text-muted">Inget pass planerat idag. Vila och återhämta dig – eller träna ändå.</p>
           <Button size="lg" className="w-full" onClick={() => setPickOpen(true)} disabled={starting}>
             <Dumbbell aria-hidden size={20} /> Träna ändå
           </Button>
@@ -200,21 +205,15 @@ export default function HomePage() {
         </section>
       )}
 
-      {!loading && (
-        <section className="mt-6" aria-labelledby="quick-h">
-          <SectionTitle id="quick-h">Snabbval</SectionTitle>
-          <div className="grid grid-cols-2 gap-3">
-            {!active && (
-              <Button className="col-span-2" size="lg" onClick={() => void start(null, null)} disabled={starting}>
-                <Plus aria-hidden size={20} /> Starta tomt pass
-              </Button>
-            )}
-            <QuickLink to={program ? '/programs' : '/programs/plan'} icon={<Layers size={20} />}>
-              {program ? 'Byt program' : 'Planera veckan'}
-            </QuickLink>
-            <QuickLink to="/exercises" icon={<BookOpen size={20} />}>Övningar</QuickLink>
-          </div>
-        </section>
+      {!loading && !active && program && (
+        <nav className="mt-6 grid grid-cols-2 gap-3" aria-label="Mer">
+          <QuickLink to="/skapa/pass" icon={<Plus size={20} />}>
+            Skapa gympass
+          </QuickLink>
+          <QuickLink to="/programs" icon={<CalendarDays size={20} />}>
+            Ändra schema
+          </QuickLink>
+        </nav>
       )}
 
       <Sheet open={pickOpen} onClose={() => setPickOpen(false)} title="Välj pass">
@@ -235,10 +234,10 @@ export default function HomePage() {
             </button>
           ))}
           <Link
-            to="/templates"
-            className="press flex min-h-12 items-center justify-center rounded-2xl border border-border px-4 font-semibold"
+            to="/skapa/pass"
+            className="press flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-dashed border-border px-4 font-semibold"
           >
-            Alla passmallar
+            <Plus aria-hidden size={18} /> Skapa gympass
           </Link>
         </div>
       </Sheet>
@@ -363,8 +362,34 @@ function ActiveCard({ session, onContinue }: { session: WorkoutSession; onContin
   );
 }
 
-/** No active program: start any template with one tap, last used first. */
-function QuickStartCard({
+/** First thing a new account sees: build a weekly schedule or a single pass. */
+function StartChoices() {
+  const choice = 'press flex min-h-28 items-center gap-4 rounded-[1.75rem] border p-5 text-left';
+  return (
+    <section aria-labelledby="start-h" className="space-y-3">
+      <h2 id="start-h" className="text-3xl font-black leading-tight">
+        Hur vill du börja?
+      </h2>
+      <Link to="/skapa/schema" className={cx(choice, 'border-accent bg-accent text-accent-fg')}>
+        <CalendarDays aria-hidden size={32} className="shrink-0" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-2xl font-extrabold">Skapa schema</span>
+          <span className="block text-sm text-accent-fg/75">Välj dagar och bygg ett pass för varje dag.</span>
+        </span>
+      </Link>
+      <Link to="/skapa/pass" className={cx(choice, 'border-border bg-surface')}>
+        <Dumbbell aria-hidden size={32} className="shrink-0 text-accent" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-2xl font-extrabold">Skapa gympass</span>
+          <span className="block text-sm text-muted">Bygg dagens pass och kör direkt.</span>
+        </span>
+      </Link>
+    </section>
+  );
+}
+
+/** Saved passes, one tap to start, last run first. */
+function YourPasses({
   templates,
   lastTemplateId,
   starting,
@@ -375,59 +400,38 @@ function QuickStartCard({
   starting: boolean;
   onStart: (templateId: string) => void;
 }) {
-  const [showAll, setShowAll] = useState(false);
-  const ordered = lastTemplateId
-    ? [...templates].sort((a, b) => Number(b.id === lastTemplateId) - Number(a.id === lastTemplateId))
-    : templates;
-  const visible = showAll ? ordered : ordered.slice(0, 4);
+  const ordered = lastTemplateId ? [...templates].sort((a, b) => Number(b.id === lastTemplateId) - Number(a.id === lastTemplateId)) : templates;
   return (
-    <section className="card-hero space-y-4 p-5" aria-labelledby="quickstart-h">
-      <div className="space-y-1">
-        <Eyebrow>Snabbstart</Eyebrow>
-        <h2 id="quickstart-h" className="text-3xl font-extrabold">
-          Vad kör du idag?
-        </h2>
-      </div>
-      {templates.length === 0 ? (
-        <p className="text-muted">
-          Du har inga passmallar än. <Link className="text-accent underline" to="/templates">Skapa en</Link> eller starta ett tomt pass nedan.
-        </p>
-      ) : (
-        <ul className="space-y-2">
-          {visible.map((t) => (
-            <li key={t.id}>
-              <button
-                type="button"
-                disabled={starting}
-                onClick={() => onStart(t.id)}
-                className="press flex min-h-16 w-full items-center gap-3 rounded-2xl bg-black/25 px-4 py-2 text-left active:bg-surface-2"
-              >
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-lg font-bold">{t.name}</span>
-                  <span className="block text-sm text-muted">
-                    {t.id === lastTemplateId ? 'Senast körd · ' : ''}
-                    {summaryText(t)}
-                  </span>
+    <section className="mt-6" aria-labelledby="passes-h">
+      <SectionTitle id="passes-h">Dina pass</SectionTitle>
+      <ul className="space-y-2">
+        {ordered.slice(0, 5).map((t) => (
+          <li key={t.id}>
+            <button
+              type="button"
+              disabled={starting}
+              onClick={() => onStart(t.id)}
+              className="card press flex min-h-16 w-full items-center gap-3 px-4 py-2 text-left active:bg-surface-2"
+            >
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-lg font-bold">{t.name || 'Namnlöst pass'}</span>
+                <span className="block text-sm text-muted">
+                  {t.id === lastTemplateId ? 'Senast körd · ' : ''}
+                  {summaryText(t)}
                 </span>
-                <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent text-accent-fg">
-                  <Play size={18} fill="currentColor" />
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
+              </span>
+              <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent text-accent-fg">
+                <Play size={18} fill="currentColor" />
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      {templates.length > 5 && (
+        <Link to="/templates" className="mt-2 block py-2 text-center text-sm font-semibold text-accent">
+          Alla {templates.length} pass
+        </Link>
       )}
-      {ordered.length > 4 && (
-        <Button size="lg" variant="ghost" className="w-full" onClick={() => setShowAll((s) => !s)}>
-          {showAll ? 'Visa färre' : `Visa alla ${ordered.length} pass`}
-        </Button>
-      )}
-      <p className="flex items-start gap-2 text-sm text-muted">
-        <CalendarDays aria-hidden size={16} className="mt-0.5 shrink-0" />
-        <span>
-          Tips: <Link className="font-semibold text-accent" to="/programs/plan">planera din vecka</Link> så visas dagens pass här automatiskt.
-        </span>
-      </p>
     </section>
   );
 }

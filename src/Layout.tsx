@@ -6,7 +6,7 @@ import { BarChart3, CalendarDays, ChevronRight, Dumbbell, Flame, Settings2, Sun 
 
 const tabs = [
   { to: '/', label: 'Idag', Icon: Sun },
-  { to: '/templates', label: 'Mallar', Icon: Dumbbell },
+  { to: '/templates', label: 'Pass', Icon: Dumbbell },
   { to: '/history', label: 'Historik', Icon: CalendarDays },
   { to: '/stats', label: 'Statistik', Icon: BarChart3 },
   { to: '/settings', label: 'Mer', Icon: Settings2 },
@@ -30,12 +30,14 @@ export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const inWorkout = location.pathname.startsWith('/workout');
+  // The create flows are focused full-screen steps with their own bottom button.
+  const focused = inWorkout || location.pathname.startsWith('/skapa');
 
   return (
     <>
       <SyncDot />
       <Outlet />
-      {active && !inWorkout && (
+      {active && !focused && (
         <button
           type="button"
           onClick={() => navigate('/workout')}
@@ -54,7 +56,7 @@ export default function Layout() {
           </span>
         </button>
       )}
-      {!inWorkout && (
+      {!focused && (
         <nav className="pb-safe fixed inset-x-0 bottom-0 z-20 px-3 pt-2" aria-label="Huvudmeny">
           <ul className="glass mx-auto mb-2 flex max-w-lg rounded-[1.75rem] border border-white/8 p-1.5 shadow-[0_16px_40px_-16px_rgb(0_0_0/0.9)]">
             {tabs.map(({ to, label, Icon }) => (
