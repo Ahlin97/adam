@@ -8,12 +8,14 @@ import { put } from '@/db/repo';
 import { EQUIPMENT_LABELS, MUSCLE_LABELS } from '@/lib/labels';
 import { Button, Chip, Field, Page, Sheet, cx, inputClass } from '@/ui';
 import { normalizeSearch, regionOf, type Region } from '@/features/library/filters';
-import { CATEGORIES, EQUIPMENT_GROUPS, categoryOf, exercisesByCategory, makeCustomExercise, passName, type EquipmentGroup } from './categories';
+import { CATEGORIES, DEFAULT_SETS, EQUIPMENT_GROUPS, categoryOf, exercisesByCategory, makeCustomExercise, passName, type EquipmentGroup } from './categories';
 
 export interface BuiltPass {
   name: string;
   categories: Region[];
   exercises: Exercise[];
+  /** Working sets per exercise id (DEFAULT_SETS when missing). */
+  sets: Record<string, number>;
 }
 
 type Step = 'categories' | 'exercises' | 'review';
@@ -37,8 +39,9 @@ export function PassBuilder({
   const [categories, setCategories] = useState<Region[]>(initial?.categories ?? []);
   const [picked, setPicked] = useState<Exercise[]>(initial?.exercises ?? []);
   const [name, setName] = useState<string | null>(initial?.name ?? null);
+  const [sets, setSets] = useState<Record<string, number>>(initial?.sets ?? {});
 
-  const pass: BuiltPass = { name: name ?? passName(categories), categories, exercises: picked };
+  const pass: BuiltPass = { name: name ?? passName(categories), categories, exercises: picked, sets };
   const back = step === 'categories' ? onExit : () => setStep(step === 'review' ? 'exercises' : 'categories');
 
   return (
@@ -60,7 +63,9 @@ export function PassBuilder({
           onCreated={(e) => setPicked((list) => [...list, e])}
         />
       )}
-      {step === 'review' && <ReviewStep pass={pass} onName={setName} onChange={setPicked} />}
+      {step === 'review' && (
+        <ReviewStep pass={pass} onName={setName} onChange={setPicked} onSets={(id, n) => setSets((m) => ({ ...m, [id]: n }))} />
+      )}
 
       <BottomBar>
         {step === 'categories' && (
@@ -333,7 +338,17 @@ function CustomExerciseForm({ muscles, initialName, onCreated }: { muscles: Musc
 
 // ---------- Step 3 ----------
 
-function ReviewStep({ pass, onName, onChange }: { pass: BuiltPass; onName: (n: string) => void; onChange: (list: Exercise[]) => void }) {
+function ReviewStep({
+  pass,
+  onName,
+  onChange,
+  onSets,
+}: {
+  pass: BuiltPass;
+  onName: (n: string) => void;
+  onChange: (list: Exercise[]) => void;
+  onSets: (exerciseId: string, n: number) => void;
+}) {
   const move = (i: number, d: -1 | 1) => {
     const list = [...pass.exercises];
     [list[i], list[i + d]] = [list[i + d], list[i]];
@@ -345,37 +360,59 @@ function ReviewStep({ pass, onName, onChange }: { pass: BuiltPass; onName: (n: s
         <h2 id="rev-h" className="text-3xl font-black leading-tight">
           Ditt pass
         </h2>
-        <p className="mt-1 text-muted">3 set per övning. Vikter och reps fyller du i när du kör.</p>
+        <p className="mt-1 text-muted">Välj antal set per övning. Vikter och reps fyller du i när du kör.</p>
       </div>
       <Field label="Namn">
         <input className={inputClass} value={pass.name} onChange={(e) => onName(e.target.value)} />
       </Field>
       <ol className="space-y-2">
         {pass.exercises.map((e, i) => (
-          <li key={e.id} className="flex items-center gap-2 rounded-2xl bg-surface p-2 pl-3">
-            <span className="tabular flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-2 text-sm font-extrabold">{i + 1}</span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate font-semibold">{e.name}</span>
-              <span className="block text-sm text-muted">{EQUIPMENT_LABELS[e.equipment]}</span>
-            </span>
-            <button type="button" aria-label={`Flytta ${e.name} upp`} disabled={i === 0} onClick={() => move(i, -1)} className="flex size-10 items-center justify-center rounded-xl text-muted disabled:opacity-30 active:bg-surface-2">
-              <ChevronUp size={20} />
-            </button>
-            <button
-              type="button"
-              aria-label={`Flytta ${e.name} ned`}
-              disabled={i === pass.exercises.length - 1}
-              onClick={() => move(i, 1)}
-              className="flex size-10 items-center justify-center rounded-xl text-muted disabled:opacity-30 active:bg-surface-2"
-            >
-              <ChevronDown size={20} />
-            </button>
-            <button type="button" aria-label={`Ta bort ${e.name}`} onClick={() => onChange(pass.exercises.filter((x) => x.id !== e.id))} className="flex size-10 items-center justify-center rounded-xl text-muted active:bg-surface-2">
-              <X size={18} />
-            </button>
+          <li key={e.id} className="rounded-2xl bg-surface p-2 pl-3">
+            <div className="flex items-center gap-2">
+              <span className="tabular flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-2 text-sm font-extrabold">{i + 1}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-semibold">{e.name}</span>
+                <span className="block text-sm text-muted">{EQUIPMENT_LABELS[e.equipment]}</span>
+              </span>
+              <button type="button" aria-label={`Flytta ${e.name} upp`} disabled={i === 0} onClick={() => move(i, -1)} className="flex size-10 items-center justify-center rounded-xl text-muted disabled:opacity-30 active:bg-surface-2">
+                <ChevronUp size={20} />
+              </button>
+              <button
+                type="button"
+                aria-label={`Flytta ${e.name} ned`}
+                disabled={i === pass.exercises.length - 1}
+                onClick={() => move(i, 1)}
+                className="flex size-10 items-center justify-center rounded-xl text-muted disabled:opacity-30 active:bg-surface-2"
+              >
+                <ChevronDown size={20} />
+              </button>
+              <button type="button" aria-label={`Ta bort ${e.name}`} onClick={() => onChange(pass.exercises.filter((x) => x.id !== e.id))} className="flex size-10 items-center justify-center rounded-xl text-muted active:bg-surface-2">
+                <X size={18} />
+              </button>
+            </div>
+            <SetCount value={pass.sets[e.id] ?? DEFAULT_SETS} name={e.name} onChange={(n) => onSets(e.id, n)} />
           </li>
         ))}
       </ol>
     </section>
+  );
+}
+
+/** "Set  − 3 +" under each exercise on the last step. */
+function SetCount({ value, name, onChange }: { value: number; name: string; onChange: (n: number) => void }) {
+  const btn = 'flex size-10 items-center justify-center rounded-xl bg-surface-2 text-lg font-bold disabled:opacity-30 active:bg-border';
+  return (
+    <div className="mt-1 flex items-center justify-end gap-2 pr-1" role="group" aria-label={`Antal set för ${name}`}>
+      <span className="mr-auto pl-10 text-sm text-muted">Set</span>
+      <button type="button" className={btn} aria-label={`Färre set för ${name}`} disabled={value <= 1} onClick={() => onChange(value - 1)}>
+        −
+      </button>
+      <span className="tabular w-8 text-center text-xl font-extrabold" aria-live="polite">
+        {value}
+      </span>
+      <button type="button" className={btn} aria-label={`Fler set för ${name}`} disabled={value >= 10} onClick={() => onChange(value + 1)}>
+        +
+      </button>
+    </div>
   );
 }

@@ -17,7 +17,7 @@ export default function CreatePassPage() {
   async function save(pass: BuiltPass, start: boolean) {
     setBusy(true);
     try {
-      const template = makeTemplate(pass.name, pass.exercises, settings);
+      const template = makeTemplate(pass.name, pass.exercises, settings, pass.sets);
       await put('templates', template);
       if (start) {
         await startSession({ templateId: template.id, programId: null });

@@ -29,5 +29,13 @@ describe('create pass building blocks', () => {
     expect(t.name).toBe('Mitt pass');
     expect(t.exercises).toHaveLength(1);
     expect(t.exercises[0]).toMatchObject({ exerciseId: ex.id, sets: 3, warmupSets: 0 });
+    expect(makeTemplate('X', [ex], DEFAULT_SETTINGS, { [ex.id]: 5 }).exercises[0].sets).toBe(5);
+  });
+
+  it('has Mage as a category with the ab exercises', () => {
+    const core = exercisesByCategory(BUILTIN_EXERCISES, ['core'], null);
+    expect(core[0].category.label).toBe('Mage');
+    expect(core[0].exercises.some((e) => e.id === 'bi-plank')).toBe(true);
+    expect(passName(['chest', 'core'])).toBe('Bröst & Mage');
   });
 });

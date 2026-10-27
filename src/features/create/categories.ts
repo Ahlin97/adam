@@ -19,6 +19,7 @@ export const CATEGORIES: Category[] = [
   { key: 'back', label: 'Rygg', muscles: ['back', 'lats', 'traps', 'lower_back'] },
   { key: 'chest', label: 'Bröst', muscles: ['chest'] },
   { key: 'shoulders', label: 'Axlar', muscles: ['shoulders'] },
+  { key: 'core', label: 'Mage', muscles: ['abs', 'obliques'] },
 ];
 
 export const categoryOf = (key: Region) => CATEGORIES.find((c) => c.key === key);
@@ -75,16 +76,19 @@ export function makeCustomExercise(input: { name: string; muscle: MuscleGroup; e
   };
 }
 
+/** Working sets per exercise unless changed on the last step. */
+export const DEFAULT_SETS = 3;
+
 /**
- * The chosen exercises as a saved pass: 3 working sets each, rep range by exercise type and no
+ * The chosen exercises as a saved pass: the chosen number of working sets (3 unless changed), rep range by exercise type and no
  * automatic warm-up sets (a self-built pass logs exactly the sets you planned; warm-ups can be
  * added per exercise in the pass editor).
  */
-export function makeTemplate(name: string, exercises: Exercise[], settings: Settings): WorkoutTemplate {
+export function makeTemplate(name: string, exercises: Exercise[], settings: Settings, sets: Record<string, number> = {}): WorkoutTemplate {
   return {
     id: newId(),
     name: name.trim() || 'Mitt pass',
     notes: '',
-    exercises: exercises.map((e) => ({ ...newTemplateExercise(e, settings), warmupSets: 0 })),
+    exercises: exercises.map((e) => ({ ...newTemplateExercise(e, settings), warmupSets: 0, sets: sets[e.id] ?? DEFAULT_SETS })),
   };
 }

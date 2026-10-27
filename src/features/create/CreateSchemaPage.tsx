@@ -49,7 +49,7 @@ export default function CreateSchemaPage() {
 
   async function save() {
     setSaving(true);
-    const { templates: created, weekdays } = buildSchema(days, plans, newId, (p) => makeTemplate(p.name, p.exercises, settings));
+    const { templates: created, weekdays } = buildSchema(days, plans, newId, (p) => makeTemplate(p.name, p.exercises, settings, p.sets));
     for (const t of created) await put('templates', t);
     const program: Program = {
       id: newId(),

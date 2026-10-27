@@ -4,7 +4,7 @@ import { buildSchema, type DayPlan } from './CreateSchemaPage';
 
 describe('buildSchema', () => {
   it('creates each built pass once and maps weekdays to it, keeping saved passes as they are', () => {
-    const pass = { name: 'Bröst', categories: [], exercises: [] };
+    const pass = { name: 'Bröst', categories: [], exercises: [], sets: {} };
     const plans: Record<number, DayPlan> = {
       0: { kind: 'new', key: 'k1', pass },
       2: { kind: 'saved', templateId: 'mine' },
