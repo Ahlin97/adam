@@ -10,7 +10,7 @@ import { fmtNum, safeSummary } from '@/features/workout/safeEngine';
 import { setText, volumeText } from '@/features/workout/setFormat';
 import { SetEditSheet, type SetValues } from '@/features/workout/SetEditSheet';
 import { deleteSession, deleteSet, logSet, startSession, updateSession, updateSet } from '@/features/workout/start';
-import { RotateCcw } from 'lucide-react';
+import { NotebookPen, Pencil, RotateCcw } from 'lucide-react';
 
 function toLocalInput(iso: string): string {
   const d = new Date(iso);
@@ -115,7 +115,7 @@ export default function SessionDetailPage() {
               <li key={se.id}>
                 <Card className="p-3">
                   <h2 className="px-1 font-semibold">{ex?.name ?? 'Okänd övning'}</h2>
-                  {se.notes && <p className="px-1 text-sm text-muted">📝 {se.notes}</p>}
+                  {se.notes && <p className="px-1 text-sm text-muted"><NotebookPen aria-hidden size={14} className="mr-1 inline-block align-[-2px]" />{se.notes}</p>}
                   <ol className="mt-2 space-y-1">
                     {own.map((s, i) => (
                       <li key={s.id}>
@@ -138,9 +138,7 @@ export default function SessionDetailPage() {
                               {s.type === 'warmup' ? 'Uppv.' : s.type === 'drop' ? 'Drop' : 'Failure'}
                             </span>
                           )}
-                          <span aria-hidden className="text-muted">
-                            ✎
-                          </span>
+                          <Pencil aria-hidden size={14} className="text-muted" />
                         </button>
                       </li>
                     ))}

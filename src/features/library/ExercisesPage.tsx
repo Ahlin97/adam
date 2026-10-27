@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { Star } from 'lucide-react';
 import type { Exercise } from '@/engine';
 import { useExercises } from '@/db/hooks';
 import { put } from '@/db/repo';
@@ -12,9 +13,9 @@ export function FavoriteToggle({ exercise }: { exercise: Exercise }) {
       aria-pressed={exercise.isFavorite}
       aria-label={exercise.isFavorite ? `Ta bort ${exercise.name} från favoriter` : `Lägg till ${exercise.name} i favoriter`}
       onClick={() => void put('exercises', { ...exercise, isFavorite: !exercise.isFavorite })}
-      className={cx('min-h-12 min-w-12 rounded-xl text-2xl active:bg-surface-2', exercise.isFavorite ? 'text-warn' : 'text-muted')}
+      className={cx('flex min-h-12 min-w-12 items-center justify-center rounded-xl active:bg-surface-2', exercise.isFavorite ? 'text-warn' : 'text-muted')}
     >
-      {exercise.isFavorite ? '★' : '☆'}
+      <Star aria-hidden size={22} fill={exercise.isFavorite ? 'currentColor' : 'none'} />
     </button>
   );
 }

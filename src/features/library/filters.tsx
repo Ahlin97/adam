@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type { Equipment, Exercise, MuscleGroup } from '@/engine';
 import { EQUIPMENT_LABELS, MUSCLE_LABELS } from '@/lib/labels';
 import { Chip, inputClass } from '@/ui';
+import { Star } from 'lucide-react';
 
 /** Lowercase and strip diacritics so "bankpress" matches "Bänkpress". */
 export function normalizeSearch(s: string): string {
@@ -111,7 +112,8 @@ export function ExerciseFilterBar({
       />
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1" role="group" aria-label="Filtrera på kroppsdel">
         <Chip active={state.favoritesOnly} onClick={() => setState((s) => ({ ...s, favoritesOnly: !s.favoritesOnly }))}>
-          ★ Favoriter
+          <Star aria-hidden size={14} fill="currentColor" className="mr-1 inline-block align-[-2px]" />
+          Favoriter
         </Chip>
         {REGIONS.map((r) => (
           <Chip key={r.key} active={state.region === r.key} onClick={() => setState((s) => ({ ...s, region: s.region === r.key ? null : r.key }))}>

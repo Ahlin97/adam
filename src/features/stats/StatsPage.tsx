@@ -1,14 +1,17 @@
 import { useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useAllSets, useCompletedSessions, useExerciseMap } from '@/db/hooks';
-import { MUSCLE_LABELS } from '@/lib/labels';
+import { regionOf, REGIONS } from '@/features/library/filters';
 import { formatDate } from '@/lib/format';
 import { Button, Card, EmptyState, ListLink, Page } from '@/ui';
-import { addWeeks, muscleSetsForWeek, sessionsPerWeek, startOfWeek, trainedExercises, weekLabel } from './aggregate';
+import { addWeeks, categorySetsForWeek, sessionsPerWeek, startOfWeek, trainedExercises, weekLabel, weeksToShow } from './aggregate';
 import { CHART, axisTick, tooltipProps } from './chartTheme';
 import { fmtNum } from './units';
 
 const dayMonth = new Intl.DateTimeFormat('sv-SE', { day: 'numeric', month: 'short' });
+
+/** Same names as in Skapa gympass ("Ben" rather than the filter's "Ben & säte"). */
+const REGION_LABEL = Object.fromEntries(REGIONS.map((r) => [r.key, r.key === 'legs' ? 'Ben' : r.label])) as Record<string, string>;
 
 export default function StatsPage() {
   const sessions = useCompletedSessions();
@@ -18,10 +21,11 @@ export default function StatsPage() {
   const [showTable, setShowTable] = useState(false);
 
   const now = useMemo(() => new Date(), []);
-  const perWeek = useMemo(() => (sessions ? sessionsPerWeek(sessions, 12, now) : []), [sessions, now]);
+  const weeks = useMemo(() => (sessions ? weeksToShow(sessions, now) : 4), [sessions, now]);
+  const perWeek = useMemo(() => (sessions ? sessionsPerWeek(sessions, weeks, now) : []), [sessions, weeks, now]);
   const selectedWeek = useMemo(() => addWeeks(startOfWeek(now), -weekOffset), [now, weekOffset]);
   const muscles = useMemo(
-    () => (sets && sessions && exMap ? muscleSetsForWeek(sets, sessions, exMap, selectedWeek) : []),
+    () => (sets && sessions && exMap ? categorySetsForWeek(sets, sessions, exMap, selectedWeek, regionOf) : []),
     [sets, sessions, exMap, selectedWeek],
   );
   const trained = useMemo(() => (sets && sessions ? trainedExercises(sets, sessions) : []), [sets, sessions]);
@@ -35,7 +39,7 @@ export default function StatsPage() {
       </Page>
     );
 
-  const total12 = perWeek.reduce((s, w) => s + w.count, 0);
+  const total = perWeek.reduce((s, w) => s + w.count, 0);
   const maxMuscle = Math.max(1, ...muscles.map((m) => m.sets));
   const weekEnd = new Date(selectedWeek.getFullYear(), selectedWeek.getMonth(), selectedWeek.getDate() + 6);
 
@@ -47,7 +51,7 @@ export default function StatsPage() {
             <div>
               <h2 id="spw-h" className="font-bold">Pass per vecka</h2>
               <p className="text-sm text-muted">
-                Senaste 12 veckorna: {total12} pass, snitt {fmtNum(total12 / 12)} per vecka
+                Senaste {weeks} veckorna: {total} pass, snitt {fmtNum(total / weeks)} per vecka
               </p>
             </div>
             <Button size="sm" variant="ghost" aria-pressed={showTable} onClick={() => setShowTable((v) => !v)}>
@@ -89,7 +93,7 @@ export default function StatsPage() {
 
       <section aria-labelledby="msw-h">
         <Card>
-          <h2 id="msw-h" className="font-bold">Arbetsset per muskelgrupp</h2>
+          <h2 id="msw-h" className="font-bold">Set per muskelgrupp</h2>
           <div className="mt-2 flex items-center justify-between gap-2">
             <Button size="sm" aria-label="Föregående vecka" onClick={() => setWeekOffset((o) => o + 1)}>‹</Button>
             <div className="text-center" aria-live="polite">
@@ -101,8 +105,8 @@ export default function StatsPage() {
           {muscles.length ? (
             <ul className="mt-3 space-y-2">
               {muscles.map((m) => (
-                <li key={m.muscle} className="grid grid-cols-[7.5rem_1fr_2.5rem] items-center gap-2 text-sm">
-                  <span className="truncate">{MUSCLE_LABELS[m.muscle]}</span>
+                <li key={m.category} className="grid grid-cols-[7.5rem_1fr_2.5rem] items-center gap-2 text-sm">
+                  <span className="truncate">{REGION_LABEL[m.category]}</span>
                   <span className="h-3 rounded bg-surface-2" aria-hidden>
                     <span className="block h-3 rounded bg-accent" style={{ width: `${(m.sets / maxMuscle) * 100}%` }} />
                   </span>
@@ -113,7 +117,7 @@ export default function StatsPage() {
           ) : (
             <p className="mt-3 text-sm text-muted">Inga arbetsset den här veckan.</p>
           )}
-          <p className="mt-3 text-xs text-muted">Primär muskel räknas som 1 set, sekundära muskler som 0,5 set. Uppvärmning räknas inte.</p>
+          <p className="mt-3 text-xs text-muted">Varje arbetsset räknas en gång, under övningens huvudmuskel. Uppvärmning räknas inte.</p>
         </Card>
       </section>
 

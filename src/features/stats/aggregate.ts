@@ -124,6 +124,40 @@ export function muscleSetsForWeek(
   return [...totals.entries()].map(([muscle, n]) => ({ muscle, sets: n })).sort((a, b) => b.sets - a.sets || a.muscle.localeCompare(b.muscle));
 }
 
+/**
+ * Working sets per category (Armar, Ben … – whatever `categoryOf` maps a primary muscle to) during
+ * the week starting `weekStart`. One set counts once, for its exercise's primary muscle only.
+ */
+export function categorySetsForWeek<K extends string>(
+  sets: SetLike[],
+  sessions: SessionLike[],
+  exercises: Map<string, Pick<Exercise, 'primaryMuscle'>>,
+  weekStart: Date,
+  categoryOf: (m: MuscleGroup) => K,
+): { category: K; sets: number }[] {
+  const key = weekKey(weekStart);
+  const byId = completedById(sessions);
+  const totals = new Map<K, number>();
+  for (const s of sets) {
+    if (!isWorking(s)) continue;
+    const session = byId.get(s.sessionId);
+    if (!session || weekKey(session.startedAt) !== key) continue;
+    const ex = exercises.get(s.exerciseId);
+    if (!ex) continue;
+    const c = categoryOf(ex.primaryMuscle);
+    totals.set(c, (totals.get(c) ?? 0) + 1);
+  }
+  return [...totals.entries()].map(([category, n]) => ({ category, sets: n })).sort((a, b) => b.sets - a.sets);
+}
+
+/** How many weeks the "pass per vecka" chart should show: from the first pass, at least 4, at most 12. */
+export function weeksToShow(sessions: SessionLike[], now: Date): number {
+  const first = sessions.filter((s) => s.status === 'completed').reduce<string | null>((m, s) => (!m || s.startedAt < m ? s.startedAt : m), null);
+  if (!first) return 4;
+  const weeks = Math.round((startOfWeek(now).getTime() - startOfWeek(first).getTime()) / (7 * 864e5)) + 1;
+  return Math.min(12, Math.max(4, weeks));
+}
+
 // ---------- Per exercise ----------
 
 export interface ExercisePoint {

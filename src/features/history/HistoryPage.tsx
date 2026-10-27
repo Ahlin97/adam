@@ -6,6 +6,7 @@ import { Chip, EmptyState, ListLink, Page, cx } from '@/ui';
 import { dayKey, formatDate, formatSessionLength, formatTime } from '@/lib/format';
 import { safeSummary } from '@/features/workout/safeEngine';
 import { volumeText } from '@/features/workout/setFormat';
+import { startOfWeek, weekLabel } from '@/features/stats/aggregate';
 
 const MONTHS = ['januari', 'februari', 'mars', 'april', 'maj', 'juni', 'juli', 'augusti', 'september', 'oktober', 'november', 'december'];
 const WEEKDAYS = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'];
@@ -59,11 +60,52 @@ export default function HistoryPage() {
       ) : sessions.length === 0 ? (
         <EmptyState title="Inga genomförda pass ännu">Avslutade pass dyker upp här.</EmptyState>
       ) : view === 'list' ? (
-        <SessionList sessions={sessions} setsBySession={setsBySession} unit={settings.unit} withDate />
+        <WeekGroups sessions={sessions} setsBySession={setsBySession} unit={settings.unit} />
       ) : (
         <CalendarView sessions={sessions} setsBySession={setsBySession} unit={settings.unit} />
       )}
     </Page>
+  );
+}
+
+/** Sessions per week (newest first), each week headed by its totals. */
+export function groupByWeek(sessions: WorkoutSession[], now = new Date()): { weekStart: Date; title: string; sessions: WorkoutSession[] }[] {
+  const thisWeek = startOfWeek(now).getTime();
+  const groups = new Map<number, WorkoutSession[]>();
+  for (const s of sessions) {
+    const k = startOfWeek(s.startedAt).getTime();
+    groups.set(k, [...(groups.get(k) ?? []), s]);
+  }
+  return [...groups.entries()]
+    .sort((a, b) => b[0] - a[0])
+    .map(([k, list]) => {
+      const weekStart = new Date(k);
+      const weeksAgo = Math.round((thisWeek - k) / (7 * 864e5));
+      const title = weeksAgo === 0 ? 'Den här veckan' : weeksAgo === 1 ? 'Förra veckan' : weekLabel(weekStart);
+      return { weekStart, title, sessions: list.sort((a, b) => b.startedAt.localeCompare(a.startedAt)) };
+    });
+}
+
+function WeekGroups({ sessions, setsBySession, unit }: { sessions: WorkoutSession[]; setsBySession: Map<string, SetEntry[]>; unit: Unit }) {
+  return (
+    <div className="space-y-6">
+      {groupByWeek(sessions).map((g) => {
+        const sums = g.sessions.map((s) => safeSummary(s, setsBySession.get(s.id) ?? []));
+        const setCount = sums.reduce((n, x) => n + x.setCount, 0);
+        const volume = sums.reduce((n, x) => n + x.volumeKg, 0);
+        return (
+          <section key={g.weekStart.getTime()} aria-label={g.title}>
+            <h2 className="mb-2 flex items-baseline justify-between gap-2 px-1">
+              <span className="text-xs font-bold uppercase tracking-[0.14em] text-muted">{g.title}</span>
+              <span className="tabular text-sm text-muted">
+                {g.sessions.length} pass · {setCount} set · {volumeText(volume, unit)}
+              </span>
+            </h2>
+            <SessionList sessions={g.sessions} setsBySession={setsBySession} unit={unit} withDate />
+          </section>
+        );
+      })}
+    </div>
   );
 }
 

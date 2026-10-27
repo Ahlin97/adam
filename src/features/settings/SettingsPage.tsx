@@ -1,3 +1,4 @@
+import { X } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { usePrograms, useSettings, useTemplates } from '@/db/hooks';
@@ -138,7 +139,7 @@ function WeightList({ label, values, unit, onChange, fill }: { label: string; va
                 aria-label={`Ta bort ${fmtWeight(v, unit)}`}
                 onClick={() => onChange(values.filter((x) => !near(x, v)))}
               >
-                {fmtWeight(v, unit, false)} <span aria-hidden className="text-muted">✕</span>
+                {fmtWeight(v, unit, false)} <X aria-hidden size={14} className="ml-1 inline-block align-[-2px] text-muted" />
               </button>
             </li>
           ))}

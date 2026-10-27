@@ -72,7 +72,7 @@ export function ExercisePicker({
       const recent = recentIds.map((id) => byId.get(id)).filter((e): e is Exercise => !!e);
       if (recent.length) out.push({ key: 'recent', label: 'Senast använda', exercises: recent });
       const favorites = exercises.filter((e) => e.isFavorite);
-      if (favorites.length) out.push({ key: 'favorites', label: '★ Favoriter', exercises: favorites });
+      if (favorites.length) out.push({ key: 'favorites', label: 'Favoriter', exercises: favorites });
     }
     for (const g of groupByRegion(filtered)) out.push(g);
     return out;

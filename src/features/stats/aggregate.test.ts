@@ -5,7 +5,9 @@ import {
   exerciseRecords,
   exerciseSeries,
   isoWeek,
+  categorySetsForWeek,
   muscleSetsForWeek,
+  weeksToShow,
   sessionsPerWeek,
   startOfWeek,
   trainedExercises,
@@ -93,6 +95,33 @@ describe('muscleSetsForWeek', () => {
       { muscle: 'triceps', sets: 1.5 },
       { muscle: 'biceps', sets: 1 },
     ]);
+  });
+});
+
+describe('categorySetsForWeek', () => {
+  it('counts each working set once under its primary muscle category', () => {
+    const ex = new Map<string, Pick<Exercise, 'primaryMuscle'>>([
+      ['bench', { primaryMuscle: 'chest' }],
+      ['curl', { primaryMuscle: 'biceps' }],
+      ['pushdown', { primaryMuscle: 'triceps' }],
+    ]);
+    const sessions = [session('a', new Date(2026, 9, 20, 8).toISOString())];
+    const sets = [set('a', 'bench', 40, 10, 'warmup'), set('a', 'bench', 80, 8), set('a', 'curl', 15, 10), set('a', 'pushdown', 20, 10), set('a', 'pushdown', 20, 10)];
+    const arms = (m: string) => (['biceps', 'triceps'].includes(m) ? 'arms' : 'chest');
+    expect(categorySetsForWeek(sets, sessions, ex, new Date(2026, 9, 19), arms)).toEqual([
+      { category: 'arms', sets: 3 },
+      { category: 'chest', sets: 1 },
+    ]);
+  });
+});
+
+describe('weeksToShow', () => {
+  it('starts at the first pass, between 4 and 12 weeks', () => {
+    const now = new Date(2026, 9, 29);
+    expect(weeksToShow([], now)).toBe(4);
+    expect(weeksToShow([session('a', new Date(2026, 9, 27).toISOString())], now)).toBe(4);
+    expect(weeksToShow([session('a', new Date(2026, 8, 7).toISOString())], now)).toBe(8);
+    expect(weeksToShow([session('a', new Date(2025, 0, 1).toISOString())], now)).toBe(12);
   });
 });
 

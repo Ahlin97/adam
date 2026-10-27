@@ -1,7 +1,7 @@
 // Big-touch-target numeric inputs used by the logger, set editor and plate calculator.
-import { Minus, Plus } from 'lucide-react';
+import { Minus, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
-import type { Unit } from '@/engine';
+import type { Equipment, Unit } from '@/engine';
 import { Button, Chip, cx } from '@/ui';
 import { SET_TYPE_LABELS } from '@/lib/labels';
 import type { SetType } from '@/engine';
@@ -44,7 +44,7 @@ export function NumberStepper({
         <Minus aria-hidden size={icon} strokeWidth={3} />
       </Button>
       <div className="min-w-0 flex-1 text-center">
-        <div className="truncate text-[0.7rem] font-bold uppercase tracking-wider text-muted">{label}</div>
+        <div className="truncate text-xs font-bold uppercase tracking-wider text-muted">{label}</div>
         {editing ? (
           <input
             autoFocus
@@ -71,6 +71,8 @@ export function NumberStepper({
           >
             <span aria-live="polite">{fmtNum(value, decimals)}</span>
             {suffix && <span className="ml-1 text-base font-medium text-muted">{suffix}</span>}
+            {/* Shows the number can be tapped to type a value. */}
+            {size === 'lg' && <Pencil aria-hidden size={14} className="ml-1.5 inline-block align-super text-muted" />}
           </button>
         )}
       </div>
@@ -115,20 +117,46 @@ export function WeightStepper({
   );
 }
 
-const JUMPS = [-4, -2, 2, 4];
+/** Quick jumps in kg by equipment: what you actually change between sets on that kind of gear. */
+const JUMPS_KG: Partial<Record<Equipment, number[]>> = {
+  barbell: [-10, -5, 5, 10],
+  machine: [-10, -5, 5, 10],
+  cable: [-10, -5, 5, 10],
+  dumbbell: [-4, -2, 2, 4],
+  kettlebell: [-8, -4, 4, 8],
+  bodyweight: [-5, -2.5, 2.5, 5],
+};
 
-/** Row of quick jumps (±2 and ±4 steps, e.g. ±5/±10 kg) for bigger weight changes in one tap. */
-export function WeightJumps({ kg, onChange, stepKg, unit }: { kg: number; onChange: (kg: number) => void; stepKg: number; unit: Unit }) {
+/** The four jumps shown (in display units); lb and unknown gear fall back to ±2/±4 steps. */
+export function weightJumps(equipment: Equipment | undefined, stepKg: number, unit: Unit): number[] {
+  const kg = equipment ? JUMPS_KG[equipment] : undefined;
+  if (kg && unit === 'kg') return kg;
   const step = displayStep(stepKg, unit);
+  return [-4, -2, 2, 4].map((n) => n * step);
+}
+
+/** Row of quick jumps for bigger weight changes in one tap. */
+export function WeightJumps({
+  kg,
+  onChange,
+  stepKg,
+  unit,
+  equipment,
+}: {
+  kg: number;
+  onChange: (kg: number) => void;
+  stepKg: number;
+  unit: Unit;
+  equipment?: Equipment;
+}) {
   const shown = unit === 'kg' ? kg : toUnit(kg, unit);
   return (
     <div className="grid grid-cols-4 gap-2" role="group" aria-label="Snabbändra vikt">
-      {JUMPS.map((n) => {
-        const delta = n * step;
+      {weightJumps(equipment, stepKg, unit).map((delta) => {
         const next = Math.max(0, round3(shown + delta));
         return (
           <Button
-            key={n}
+            key={delta}
             size="sm"
             className="tabular min-h-11 rounded-xl text-sm font-bold"
             disabled={shown + delta < 0}

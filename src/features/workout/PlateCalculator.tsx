@@ -62,7 +62,7 @@ export function PlateHint({ kg }: { kg: number }) {
         ? null
         : `${platesText(r.perSide)} per sida${r.remainder > 0 ? ` (≈ ${fmtWeight(r.achievedTotal, 'kg')})` : ''}`;
   if (!text) return null;
-  return <p className="tabular text-center text-sm font-semibold text-muted">🏋️ {text}</p>;
+  return <p className="tabular text-center text-sm font-semibold text-muted">Skivor: {text}</p>;
 }
 
 export function PlateCalculatorBody({ initialKg }: { initialKg?: number }) {

@@ -289,7 +289,7 @@ function ActiveWorkout({
         )}
         {session.notes && (
           <button type="button" className="w-full rounded-xl bg-surface-2 px-3 py-2 text-left text-sm" onClick={() => setSessionMenu(true)}>
-            📝 {session.notes}
+            <NotebookPen aria-hidden size={14} className="mr-1 inline-block align-[-2px]" />{session.notes}
           </button>
         )}
 
@@ -442,7 +442,7 @@ function ActiveWorkout({
             </Button>
           ) : (
             <Card className="space-y-3 text-center">
-              <p className="text-lg font-bold">Alla set är klara! 💪</p>
+              <p className="text-lg font-bold">Alla set är klara!</p>
               <p className="text-sm text-muted">Tryck på en övning för att lägga till fler set, eller avsluta passet.</p>
               <Button variant="good" size="xl" className="w-full" onClick={() => setFinishOpen(true)}>
                 Avsluta passet
@@ -655,6 +655,12 @@ function CurrentSetCard({
             <History aria-hidden size={14} /> Förra gången: <span className="font-semibold text-fg">{last}</span>
           </p>
         ) : null}
+        {/* Double progression drops the reps when the weight goes up; say so, or 10 → 6 reps looks like a mistake. */}
+        {showReason && suggestion!.kind === 'increase' && se.rule === 'double' && se.repMin < se.repMax && (
+          <p className="px-1 pl-7 text-muted">
+            Mer vikt, färre reps: börja på {se.repMin} och jobba upp mot {se.repMax} igen.
+          </p>
+        )}
         {suggestion?.plateau && <p className="px-1 text-warn">Platå – överväg deload eller nytt repsintervall.</p>}
         {current.firstTime && <p className="font-semibold text-warn">Första gången – välj en startvikt.</p>}
       </div>
@@ -673,7 +679,7 @@ function CurrentSetCard({
         {showWeight && (
           <>
             <WeightStepper label={weightLabel(exercise, settings.unit)} kg={weight} stepKg={step} unit={settings.unit} onChange={setWeight} />
-            <WeightJumps kg={weight} stepKg={step} unit={settings.unit} onChange={setWeight} />
+            <WeightJumps kg={weight} stepKg={step} unit={settings.unit} equipment={exercise?.equipment} onChange={setWeight} />
             {exercise?.equipment === 'barbell' && <PlateHint kg={weight} />}
           </>
         )}

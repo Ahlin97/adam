@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { X } from 'lucide-react';
 import { upcomingSchedule, type Program } from '@/engine';
 import { get, newId, put, remove, saveSettings } from '@/db/repo';
 import { useCompletedSessions, useSettings, useTemplates } from '@/db/hooks';
@@ -243,7 +244,7 @@ export default function ProgramEditPage() {
                       aria-label={`Ta bort ${tplName(tid)} från rotationen`}
                       onClick={() => update((p) => ({ ...p, rotation: p.rotation.filter((_, k) => k !== i) }))}
                     >
-                      ✕
+                      <X aria-hidden size={16} />
                     </Button>
                   </li>
                 ))}

@@ -1,7 +1,7 @@
 // Post-session summary: duration, sets, volume, personal records and the logged exercises.
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { CalendarDays, Trophy } from 'lucide-react';
+import { CalendarDays, NotebookPen, Trophy } from 'lucide-react';
 import { upcomingSchedule } from '@/engine';
 import type { Exercise, Program, SetEntry, Unit, WorkoutSession } from '@/engine';
 import { db } from '@/db/db';
@@ -9,7 +9,7 @@ import { getSessionSets, strip } from '@/db/repo';
 import { useCompletedSessions, useExerciseMap, usePrograms, useSession, useSessionSets, useSettings, useTemplates } from '@/db/hooks';
 import { Button, Card, EmptyState, Page, cx } from '@/ui';
 import { formatDate, formatLongDate, formatSessionLength } from '@/lib/format';
-import { epley, fmtNum, fmtWeight, safeNewRecords, safeSummary } from './safeEngine';
+import { epley, fmtNum, fmtWeight, safeSummary } from './safeEngine';
 import { describeSets, isTime, volumeText } from './setFormat';
 
 /** Prior (earlier) non-deleted sets for the given exercise ids, excluding one session. */
@@ -47,9 +47,14 @@ export function compareToLast(now: SetEntry[], before: SetEntry[]): -1 | 0 | 1 {
 export interface RecordLine {
   exerciseId: string;
   text: string;
+  /** Improvement over the previous best estimated 1RM, e.g. 0.04 = 4 %. */
+  gain: number;
 }
 
-/** Swedish PR lines for a session, e.g. "Bänkpress: ny tyngsta vikt 100 kg". */
+/** Records worth celebrating: a better estimated 1RM than ever before, the three biggest gains. */
+export const MAX_RECORDS = 3;
+
+/** Swedish record lines for a session, e.g. "Bänkpress: 1RM 85 kg (+4 %)", biggest gain first. */
 export function recordLines(
   session: WorkoutSession,
   sets: SetEntry[],
@@ -59,28 +64,22 @@ export function recordLines(
 ): RecordLine[] {
   const lines: RecordLine[] = [];
   const ids = [...new Set(session.exercises.map((e) => e.exerciseId))];
+  const best = (list: SetEntry[]) => Math.max(0, ...list.filter((s) => s.type !== 'warmup' && s.reps > 0).map((s) => epley(s.weight, s.reps)));
   for (const id of ids) {
     const ex = exMap.get(id);
     if (isTime(ex)) continue;
-    const current = sets.filter((s) => s.exerciseId === id && s.type !== 'warmup' && s.reps > 0);
-    const before = prior.get(id) ?? [];
-    if (!current.length || !before.length) continue;
-    const r = safeNewRecords(before, current);
-    const name = ex?.name ?? 'Övning';
-    if (r.heaviest) {
-      const w = Math.max(...current.map((s) => s.weight));
-      lines.push({ exerciseId: id, text: `${name}: ny tyngsta vikt ${fmtWeight(w, unit)}` });
-    }
-    if (r.best1RM) {
-      const best = Math.max(...current.map((s) => epley(s.weight, s.reps)));
-      lines.push({ exerciseId: id, text: `${name}: nytt uppskattat 1RM ${fmtWeight(Math.round(best * 10) / 10, unit)}` });
-    }
-    for (const w of r.repsAtWeight) {
-      const reps = Math.max(...current.filter((s) => s.weight === w).map((s) => s.reps));
-      lines.push({ exerciseId: id, text: `${name}: flest reps på ${fmtWeight(w, unit)} (${reps})` });
-    }
+    const now = best(sets.filter((s) => s.exerciseId === id));
+    const before = best(prior.get(id) ?? []);
+    // Needs history to beat, and a real step up (rounding noise is not a record).
+    if (before <= 0 || now <= before * 1.005) continue;
+    const gain = now / before - 1;
+    lines.push({
+      exerciseId: id,
+      gain,
+      text: `${ex?.name ?? 'Övning'}: uppskattat 1RM ${fmtWeight(Math.round(now * 10) / 10, unit)} (+${Math.round(gain * 100)} %)`,
+    });
   }
-  return lines;
+  return lines.sort((a, b) => b.gain - a.gain).slice(0, MAX_RECORDS);
 }
 
 export default function SummaryPage() {
@@ -118,10 +117,7 @@ export default function SummaryPage() {
 
   const unit = settings.unit;
   const summary = safeSummary(session, sets);
-  // One record per exercise is enough to celebrate; recordLines lists the most important first.
-  const records = (prior ? recordLines(session, sets, prior, exMap, unit) : []).filter(
-    (r, i, all) => all.findIndex((x) => x.exerciseId === r.exerciseId) === i,
-  );
+  const records = prior ? recordLines(session, sets, prior, exMap, unit) : [];
   const lastTime = new Map([...(prior ?? new Map<string, SetEntry[]>())].map(([id, list]) => [id, lastTimeSets(list)]));
   const volumeDelta = previous != null && previous > 0 ? summary.volumeKg - previous : null;
   const program = programs?.find((p) => p.id === settings.activeProgramId);
@@ -151,7 +147,7 @@ export default function SummaryPage() {
         {records.length > 0 && (
           <Card>
             <h3 className="mb-2 flex items-center gap-2 text-lg font-bold">
-              <Trophy aria-hidden size={20} className="text-warn" /> Nya personbästan
+              <Trophy aria-hidden size={20} className="text-warn" /> {records.length === 1 ? 'Nytt rekord' : 'Nya rekord'}
             </h3>
             <ul className="space-y-1">
               {records.map((r, i) => (
@@ -266,7 +262,7 @@ export function ExerciseSetList({
                   RPE: {own.filter((s) => s.rpe != null).map((s) => fmtNum(s.rpe!, 1)).join(' / ')}
                 </div>
               )}
-              {se.notes && <div className="mt-1 text-sm text-muted">📝 {se.notes}</div>}
+              {se.notes && <div className="mt-1 text-sm text-muted"><NotebookPen aria-hidden size={14} className="mr-1 inline-block align-[-2px]" />{se.notes}</div>}
             </Card>
           </li>
         );

@@ -191,7 +191,7 @@ export default function HomePage() {
               return (
                 <li key={`${u.templateId}-${i}`} className="flex min-h-16 items-center gap-4 px-4 py-3">
                   <span className="flex size-12 shrink-0 flex-col items-center justify-center rounded-2xl bg-surface-2 leading-tight">
-                    <span className="text-[0.65rem] font-bold uppercase tracking-wider text-muted">{wd.replace('.', '')}</span>
+                    <span className="text-xs font-bold uppercase tracking-wider text-muted">{wd.replace('.', '')}</span>
                     <span className="tabular text-lg font-extrabold">{rest.join(' ').replace(/\D+/g, '')}</span>
                   </span>
                   <span className="min-w-0 flex-1">
@@ -290,7 +290,7 @@ function WeekStrip({ progress, today }: { progress: WeekProgress; today: Date })
               >
                 {trained[i] && <Check size={16} strokeWidth={3} />}
               </span>
-              <span aria-hidden className={cx('text-[0.65rem] font-bold', i === todayIdx ? 'text-fg' : 'text-muted')}>
+              <span aria-hidden className={cx('text-xs font-bold', i === todayIdx ? 'text-fg' : 'text-muted')}>
                 {d}
               </span>
             </li>
@@ -334,7 +334,7 @@ function Stat({ icon, value, label }: { icon: React.ReactNode; value: string; la
     <div className="flex-1 rounded-2xl bg-black/25 px-3 py-2.5">
       <div className="flex items-center gap-1.5 text-muted">
         <span aria-hidden>{icon}</span>
-        <span className="text-[0.7rem] font-bold uppercase tracking-wider">{label}</span>
+        <span className="text-xs font-bold uppercase tracking-wider">{label}</span>
       </div>
       <div className="tabular mt-0.5 text-xl font-extrabold">{value}</div>
     </div>
